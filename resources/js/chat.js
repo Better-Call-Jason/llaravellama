@@ -87,7 +87,9 @@ window.sendMessage = function() {
             if (loadingIndicator) {
                 loadingIndicator.remove();
             }
+            loadConversation(currentConversationId);
             loadConversations();
+            
         },
         error: function(xhr, status, error) {
             console.error('Ajax error:', status, error);
@@ -235,51 +237,76 @@ function loadConversations() {
     });
 }
 
-function loadConversation(id) {
+// function loadConversation(id) {
+//         currentConversationId = id;
+//         $.ajax({
+//             url: '/conversation/load',
+//             method: 'POST',
+//             data: { id: id },
+//             success: function(conversation) {
+//                 $('#chat-messages').empty();
+//                 if (conversation && conversation.messages) {
+//                     conversation.messages.forEach(msg => {
+//                         appendMessage(msg.prompt, true);
+//                         if (msg.response) {
+//                             appendMessage(msg.response, false);
+//                         }
+//                     });
+//                 }
+//                 loadConversations();
+//             },
+//             error: function(xhr, status, error) {
+//                 console.error('Error loading conversation:', error);
+//                 showToast('Error loading conversation', 'error');
+//             }
+//         });
+//     }
+
+    // function loadConversation(id) {
+    //     currentConversationId = id;
+    //     $.post('/conversation/load', { id }, function(conversation) {
+    //         $('#chat-messages').empty();
+    //         if (conversation && conversation.messages) {
+    //             conversation.messages.forEach(msg => {
+    //                 const messageDiv = $('<div>')
+    //                     .addClass('message')
+    //                     .addClass('user-message')
+    //                     .text(msg.prompt);
+    //                 $('#chat-messages').append(messageDiv);
+
+    //                 if (msg.response) {
+    //                     const formattedContent = parseAndFormatContent(msg.response);
+    //                     const responseDiv = $('<div>')
+    //                         .addClass('message')
+    //                         .addClass('ai-message')
+    //                         .html(formattedContent);
+
+    //                     responseDiv.find('pre code').each((i, el) => {
+    //                         hljs.highlightElement(el);
+    //                     });
+    //                     $('#chat-messages').append(responseDiv);
+    //                 }
+    //             });
+    //         }
+    //         loadConversations();
+    //     });
+    // }
+    function loadConversation(id) {
         currentConversationId = id;
-        $.ajax({
-            url: '/conversation/load',
-            method: 'POST',
-            data: { id: id },
-            success: function(conversation) {
-                $('#chat-messages').empty();
-                if (conversation && conversation.messages) {
-                    conversation.messages.forEach(msg => {
-                        appendMessage(msg.prompt, true);
-                        if (msg.response) {
-                            appendMessage(msg.response, false);
-                        }
-                    });
-                }
-                loadConversations();
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading conversation:', error);
-                showToast('Error loading conversation', 'error');
+        $.post('/conversation/load', { id }, function(conversation) {
+            $('#chat-messages').empty();
+            if (conversation && conversation.messages) {
+                conversation.messages.forEach(msg => {
+                    appendMessage(msg.prompt, true);  // User message
+                    if (msg.response) {
+                        appendMessage(msg.response, false);  // AI response
+                    }
+                });
             }
+            loadConversations();
         });
     }
 
-    // function appendMessage(content, isUser) {
-    //     const messageDiv = $('<div>')
-    //         .addClass('message')
-    //         .addClass(isUser ? 'user-message' : 'ai-message');
-
-    //     if (isUser) {
-    //         messageDiv.text(content);
-    //     } else {
-    //         const formattedContent = parseAndFormatContent(content);
-    //         messageDiv.html(formattedContent);
-            
-    //         // Use the new highlightElement method
-    //         messageDiv.find('pre code').each((i, el) => {
-    //             hljs.highlightElement(el);
-    //         });
-    //     }
-
-    //     $('#chat-messages').append(messageDiv);
-    //     $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
-    // }
 
     function appendMessage(content, isUser) {
         const messageDiv = $('<div>')
