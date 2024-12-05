@@ -1,6 +1,6 @@
-# LaravaLlama: Private AI Chat Suite
+# LlaravaLlama: Private AI Chat Suite
 
-LaravaLlama is a self-hosted, private AI chat solution built with Laravel and Ollama. It provides a modern, intuitive interface for interacting with local LLMs while maintaining all your data on your own system.
+LlaravaLlama is a self-hosted, private AI chat solution built with Laravel and Ollama. It provides a modern, intuitive interface for interacting with local LLMs while maintaining all your data on your own system.
 
 ## Features
 
