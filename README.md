@@ -13,7 +13,7 @@ LlaravaLlama is a self-hosted, private AI chat solution built with Laravel and O
 - 📋 One-click copying of messages and code blocks
 
 ## Preview
-![LlaravaLlama Interface](public/images/docs/llaravallama.png)
+![LlaravaLlama Interface](public/images/docs/llaravellama.png)
 
 ## Prerequisites
 
