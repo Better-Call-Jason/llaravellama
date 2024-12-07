@@ -8,19 +8,13 @@ Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut but
 ## 📸 Preview
 
 <div align="center">
-  <!-- Note: Most Markdown parsers allow basic HTML. This creates a simple image showcase -->
-  <div class="carousel">
-    <img src="public/images/docs/llaravellama1.png" alt="LlaravaLlama" width="800"/>
-    <img src="public/images/docs/llaravellama2.png" alt="LlaravaLlama  " width="800"/>
-    <img src="public/images/docs/llaravellama3.png" alt="LlaravaLlama  " width="800"/>
-    <img src="public/images/docs/llaravellama4.png" alt="LlaraveLlama" width="800"/>
-    <img src="public/images/docs/llaravellama5.png" alt="LlaraveLlama" width="800"/>
-    <img src="public/images/docs/llaravellama6.png" alt="LlaraveLlama" width="800"/>
-  </div>
-
-<em>LlaravaLlama in action - showcasing both themes and mobile responsiveness</em>
+  <video autoplay loop muted playsinline width="800">
+    <source src="public/images/docs/preview.mp4" type="video/mp4">
+  </video>
+  <em>LlaravaLlama in action - showcasing features and themes</em>
 </div>
 
+ 
 ## ✨ Why LlaravaLlama?
 
 LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful local AI models to create a completely private, self-hosted chat experience. From its eye-pleasing daylight theme to its soothing moonlight mode, every detail is crafted for your comfort and productivity.
