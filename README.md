@@ -8,12 +8,10 @@ Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut but
 ## 📸 Preview
 
 <div align="center">
-  <video autoplay loop muted playsinline width="800">
-    <source src="public/images/docs/preview.mp4" type="video/mp4">
-  </video>
+  <img src="public/images/docs/preview.gif" alt="LlaravaLlama in action" width="800">
+  <br />
   <em>LlaravaLlama in action - showcasing features and themes</em>
 </div>
-
  
 ## ✨ Why LlaravaLlama?
 
