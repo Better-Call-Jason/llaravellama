@@ -10,10 +10,12 @@ Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut but
 <div align="center">
   <!-- Note: Most Markdown parsers allow basic HTML. This creates a simple image showcase -->
   <div class="carousel">
-    <img src="public/images/docs/preview-light.png" alt="LlaravaLlama Light Theme" width="800"/>
-    <img src="public/images/docs/preview-dark.png" alt="LlaravaLlama Dark Theme" width="800"/>
-    <img src="public/images/docs/mobile-view.png" alt="LlaravaLlama Mobile View" width="800"/>
-    <img src="public/images/docs/code-preview.png" alt="Code Rendering Example" width="800"/>
+    <img src="public/images/docs/llaravellama1.png" alt="LlaravaLlama" width="800"/>
+    <img src="public/images/docs/llaravellama2.png" alt="LlaravaLlama  " width="800"/>
+    <img src="public/images/docs/llaravellama3.png" alt="LlaravaLlama  " width="800"/>
+    <img src="public/images/docs/llaravellama4.png" alt="LlaraveLlama" width="800"/>
+    <img src="public/images/docs/llaravellama5.png" alt="LlaraveLlama" width="800"/>
+    <img src="public/images/docs/llaravellama6.png" alt="LlaraveLlama" width="800"/>
   </div>
 
 <em>LlaravaLlama in action - showcasing both themes and mobile responsiveness</em>
