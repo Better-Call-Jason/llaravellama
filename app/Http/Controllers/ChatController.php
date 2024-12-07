@@ -33,71 +33,6 @@ class ChatController extends Controller
         ]);
     }
     
-    // public function sendMessage(Request $request)
-    // {
-    //     $conversationId = $request->input('conversationId', time());
-    //     $message = $request->input('message');
-    //     $assistantId = $request->input('assistantId');
-        
-    //     // Save the initial message
-    //     $this->conversations->addMessage($conversationId, $message);
-        
-    //     // Get conversation context
-    //     $context = $this->conversations->getContext($conversationId);
-        
-    //     // Add assistant context if selected
-    //     if ($assistantId) {
-    //         $assistant = $this->assistants->get($assistantId);
-    //         if ($assistant) {
-    //             $context = $assistant['prompt'] . "\n\n" . $context;
-    //         }
-    //     }
-        
-    //     $fullPrompt = $context . "Human: $message\nAssistant:";
-        
-    //     // Get current model
-    //     $currentModel = $this->models->getCurrentModel();
-        
-    //     // Stream response exactly as in original script
-    //     return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {
-    //         $ch = curl_init('http://localhost:11434/api/generate');
-            
-    //         // Collect the full response
-    //         $fullResponse = '';
-            
-    //         curl_setopt($ch, CURLOPT_POST, 1);
-    //         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    //             'model' => $currentModel,
-    //             'prompt' => $fullPrompt,
-    //             'stream' => true
-    //         ]));
-            
-    //         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            
-    //         curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $conversationId) {
-    //             if ($jsonData = json_decode($data, true)) {
-    //                 if (isset($jsonData['response'])) {
-    //                     $fullResponse .= $jsonData['response'];
-    //                     // Update the stored conversation
-    //                     $this->conversations->updateResponse($conversationId, $fullResponse);
-    //                     // Echo the exact chunk for streaming
-    //                     echo $data;
-    //                     flush();
-    //                     ob_flush();
-    //                 }
-    //             }
-    //             return strlen($data);
-    //         });
-            
-    //         curl_exec($ch);
-    //         curl_close($ch);
-    //     }, 200, [
-    //         'Cache-Control' => 'no-cache',
-    //         'X-Accel-Buffering' => 'no',
-    //         'Content-Type' => 'text/event-stream',
-    //     ]);
-    // }
-
     public function sendMessage(Request $request)
     {
         $conversationId = $request->input('conversationId', time());
@@ -216,23 +151,97 @@ class ChatController extends Controller
     }
     
     // Assistant Management
-    public function createAssistant(Request $request)
-    {
-        $assistant = $this->assistants->create(
-            $request->input('name'),
-            $request->input('prompt')
-        );
-        return response()->json($assistant);
-    }
-    
     public function updateAssistant(Request $request)
     {
-        $success = $this->assistants->update(
-            $request->input('id'),
-            $request->input('name'),
-            $request->input('prompt')
-        );
-        return response()->json(['success' => $success]);
+        try {
+            // Validate request
+            if (empty($request->input('name')) || empty($request->input('prompt'))) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Name and prompt are required'
+                ], 422);
+            }
+    
+            $id = $request->input('id');
+            $name = $request->input('name');
+            $prompt = $request->input('prompt');
+    
+            // Check for duplicate names
+            $existingAssistants = $this->assistants->getAll();
+            foreach ($existingAssistants as $existing) {
+                if ($existing['id'] != $id && strtolower($existing['name']) === strtolower($name)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'An assistant with this name already exists'
+                    ], 422);
+                }
+            }
+    
+            // Get existing assistant
+            $assistant = $this->assistants->get($id);
+            if (!$assistant) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Assistant not found'
+                ], 404);
+            }
+    
+            // Update assistant
+            $success = $this->assistants->update($id, $name, $prompt);
+
+            $updatedAssistant = $this->assistants->get($id);
+            
+            return response()->json([
+                'success' => $success,
+                'assistant' => $updatedAssistant
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error updating assistant: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while updating the assistant'
+            ], 500);
+        }
+    }
+    
+    public function createAssistant(Request $request)
+    {
+        try {
+            // Validate request
+            if (empty($request->input('name')) || empty($request->input('prompt'))) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Name and prompt are required'
+                ], 422);
+            }
+    
+            $name = $request->input('name');
+            $prompt = $request->input('prompt');
+    
+            // Check for duplicate names
+            $existingAssistants = $this->assistants->getAll();
+            foreach ($existingAssistants as $existing) {
+                if (strtolower($existing['name']) === strtolower($name)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'An assistant with this name already exists'
+                    ], 422);
+                }
+            }
+    
+            $assistant = $this->assistants->create($name, $prompt);
+            
+            return response()->json([
+                'success' => true,
+                'assistant' => $assistant
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating assistant: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while creating the assistant'
+            ], 500);
+        }
     }
     
     public function deleteAssistant($id)
@@ -240,5 +249,49 @@ class ChatController extends Controller
         return response()->json([
             'success' => $this->assistants->delete($id)
         ]);
+    }
+
+    public function getAssistants()
+    {
+        return response()->json(['assistants' => $this->assistants->getAll()]);
+    }
+
+
+    public function searchConversations(Request $request)
+    {
+        try {
+            $query = $request->input('query');
+            $results = $this->conversations->search($query);
+            
+            return response()->json([
+                'success' => true,
+                'conversations' => $results
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error searching conversations: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Error searching conversations'
+            ], 500);
+        }
+    }
+
+    public function searchAssistants(Request $request)
+    {
+        try {
+            $query = $request->input('query');
+            $results = $this->assistants->search($query);
+            
+            return response()->json([
+                'success' => true,
+                'assistants' => $results
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error searching assistants: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Error searching assistants'
+            ], 500);
+        }
     }
 }

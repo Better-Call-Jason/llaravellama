@@ -8,6 +8,30 @@ class ConversationService extends JsonStorageService
     {
         parent::__construct('conversations');
     }
+
+    public function getAll()
+    {
+        $conversations = parent::getAll();
+        
+        // Sort conversations by the timestamp of their latest message
+        usort($conversations, function($a, $b) {
+            $aTimestamp = $this->getLatestTimestamp($a);
+            $bTimestamp = $this->getLatestTimestamp($b);
+            return $bTimestamp - $aTimestamp; // Descending order (newest first)
+        });
+        
+        return $conversations;
+    }
+    
+    private function getLatestTimestamp($conversation)
+    {
+        if (empty($conversation['messages'])) {
+            return $conversation['id'] ?? 0; // Fallback to conversation ID if no messages
+        }
+        
+        $lastMessage = end($conversation['messages']);
+        return $lastMessage['timestamp'] ?? $conversation['id'];
+    }
     
     public function addMessage($conversationId, $message)
     {
@@ -53,5 +77,28 @@ class ConversationService extends JsonStorageService
             }
         }
         return $context;
+    }
+
+    public function search($query)
+    {
+        $conversations = $this->getAll();
+        return array_filter($conversations, function($conversation) use ($query) {
+            // Search in title
+            if (stripos($conversation['title'], $query) !== false) {
+                return true;
+            }
+            
+            // Search in messages
+            if (isset($conversation['messages']) && is_array($conversation['messages'])) {
+                foreach ($conversation['messages'] as $message) {
+                    if (stripos($message['prompt'] ?? '', $query) !== false || 
+                        stripos($message['response'] ?? '', $query) !== false) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        });
     }
 }

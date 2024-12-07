@@ -16,6 +16,11 @@ Route::post('/conversation/delete/{id}', [ChatController::class, 'deleteConversa
 Route::post('/model/switch', [ChatController::class, 'switchModel'])->name('model.switch');
 
 // Assistant management
+Route::post('/assistants', [ChatController::class, 'getAssistants']);
 Route::post('/assistant/create', [ChatController::class, 'createAssistant'])->name('assistant.create');
-Route::post('/assistant/update', [ChatController::class, 'updateAssistant'])->name('assistant.update');
+Route::put('/assistant/update', [ChatController::class, 'updateAssistant']);
 Route::post('/assistant/delete/{id}', [ChatController::class, 'deleteAssistant'])->name('assistant.delete');
+
+//search
+Route::post('/conversation/search', [ChatController::class, 'searchConversations'])->name('conversation.search');
+Route::post('/assistant/search', [ChatController::class, 'searchAssistants'])->name('assistant.search');

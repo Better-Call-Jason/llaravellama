@@ -1,11 +1,15 @@
 // Global variables
 let currentConversationId = null;
+let currentAjaxRequest = null;
 
-// Global function declarations
+
+//assistants ops
 window.createAssistant = function() {
+    closeOffcanvas();
     $('#assistant-id').val('');
     $('#assistant-name').val('');
     $('#assistant-prompt').val('');
+    $('.modal-title').text('Create Assistant');
     $('#assistantModal').modal('show');
 };
 
@@ -13,41 +17,262 @@ window.saveAssistant = function() {
     const id = $('#assistant-id').val();
     const name = $('#assistant-name').val();
     const prompt = $('#assistant-prompt').val();
-    
+
     const url = id ? '/assistant/update' : '/assistant/create';
-    const data = id ? { id, name, prompt } : { name, prompt };
-    
-    $.post(url, data, function(response) {
-        $('#assistantModal').modal('hide');
-        location.reload();
+    const method = id ? 'PUT' : 'POST';
+    const data = { name, prompt };
+    if (id) data.id = id;
+
+    $.ajax({
+        url: url,
+        method: method,
+        data: data,
+        success: function(response) {
+            if (response.success) {
+                const assistantModal = document.getElementById('assistantModal');
+                const bsModal = bootstrap.Modal.getInstance(assistantModal);
+                if (bsModal) {
+                    bsModal.hide();
+
+                    setTimeout(() => {
+                        $('.modal-backdrop').remove();
+                        document.body.classList.remove('modal-open');
+                        document.body.style.removeProperty('overflow');
+                        document.body.style.removeProperty('padding-right');
+                    }, 300);
+                }
+
+                // Set the selected assistant ID (either from response or existing id)
+                window.selectedAssistantId = response.assistant ? response.assistant.id : id;
+
+                loadAssistants().then(() => {
+                    // Scroll to the active assistant in both containers
+                    $('.assistants-container').each(function() {
+                        const activeAssistant = $(this).find('.assistant-item.active');
+                        if (activeAssistant.length) {
+                            $(this).animate({
+                                scrollTop: activeAssistant.offset().top - $(this).offset().top + $(this).scrollTop()
+                            }, 500);
+                        }
+                    });
+                });
+
+                // Show appropriate toast message
+                if (!id) {
+                    showToast(`Assistant "${name}" created and selected`);
+                } else {
+                    showToast(`Assistant "${name}" updated and selected`);
+                }
+
+                $('#message-input').focus();
+            } else {
+                showToast(response.error || 'Error saving assistant', 'error');
+            }
+        },
+        error: function(xhr) {
+            let errorMessage = 'Error saving assistant';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMessage = xhr.responseJSON.error;
+            }
+            showToast(errorMessage, 'error');
+        }
     });
 };
 
+window.deleteAssistant = function(id) {
+    $.ajax({
+        url: `/assistant/delete/${id}`,
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                loadAssistants();
+                // If this was the currently selected assistant, clear the selection
+                if ($('.assistant-selector').val() == id) {
+                    $('.assistant-selector').val('');
+                }
+                showToast('Assistant deleted successfully');
+            } else {
+                showToast('Error deleting assistant', 'error');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error deleting assistant:', error);
+            showToast('Error deleting assistant', 'error');
+        }
+    });
+};
+
+function loadAssistants() {
+    return new Promise((resolve) => {
+        $.post('/assistants', function(data) {
+            const containers = $('.assistants-container');
+            renderAssistants(data.assistants, containers);
+            resolve();
+        });
+    });
+}
+
+function searchAssistants(query) {
+    $.post('/assistant/search', { query }, function(response) {
+        console.log('assistants search response:', response);
+        const containers = $('.assistants-container');
+        containers.empty();
+
+        if (!response.success) {
+            containers.append($('<div>').addClass('p-3 text-muted').text('An error occurred while searching'));
+            return;
+        }
+
+        // Check if we have any results
+        if (!response.assistants ||
+            (Array.isArray(response.assistants) && response.assistants.length === 0) ||
+            (typeof response.assistants === 'object' && Object.keys(response.assistants).length === 0)) {
+            containers.append($('<div>').addClass('p-3 text-muted').text('No results found'));
+            return;
+        }
+
+        // handle object /array issue
+        const assistants = Array.isArray(response.assistants) ?
+            response.assistants :
+            Object.values(response.assistants);
+
+        renderAssistants(assistants, containers);
+
+    }).fail(function() {
+        const containers = $('.assistants-container');
+        containers.empty();
+        containers.append($('<div>').addClass('p-3 text-muted').text('An error occurred while searching'));
+    });
+}
+
+function renderAssistants(data, containers) {
+    containers.empty();
+
+    if (data && Array.isArray(data)) {
+        data.forEach(assistant => {
+            const div = $('<div>')
+                .addClass('assistant-item')
+                .attr('data-id', assistant.id)
+                .attr('title', assistant.prompt)
+                .attr('data-bs-toggle', 'tooltip')
+                .attr('data-bs-placement', 'bottom');
+
+            const titleDiv = $('<div>')
+                .addClass('assistant-title d-flex align-items-center justify-content-between');
+
+            const titleSpan = $('<span>')
+                .text(assistant.name)
+                .addClass('assistant-name')
+                .css({
+                    'min-width': '100px',
+                    'white-space': 'pre-wrap',
+                    'word-break': 'break-word'
+                });
+
+            const btnContainer = $('<div>').addClass('d-flex gap-2');
+
+            const editBtn = $('<button>')
+                .addClass('btn btn-secondary btn-sm')
+                .html('<i class="fas fa-pencil"></i>')
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    $('#assistant-id').val(assistant.id);
+                    $('#assistant-name').val(assistant.name);
+                    $('#assistant-prompt').val(assistant.prompt);
+                    $('.modal-title').text('Edit Assistant');
+                    $('#assistantModal').modal('show');
+                    closeOffcanvas();
+                });
+
+            const deleteBtn = $('<button>')
+                .addClass('btn btn-danger btn-sm')
+                .html('<i class="fas fa-trash"></i>')
+                .attr('data-delete-state', 'initial')
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    const btn = $(this);
+                    const currentState = btn.attr('data-delete-state');
+
+                    if (currentState === 'initial') {
+                        btn.html('Sure?');
+                        btn.attr('data-delete-state', 'confirm');
+
+                        setTimeout(() => {
+                            if (btn.attr('data-delete-state') === 'confirm') {
+                                btn.html('<i class="fas fa-trash"></i>');
+                                btn.attr('data-delete-state', 'initial');
+                            }
+                        }, 3000);
+                    } else {
+                        deleteAssistant(assistant.id);
+                    }
+                });
+
+            btnContainer.append(editBtn, deleteBtn);
+            titleDiv.append(titleSpan, btnContainer);
+            div.append(titleDiv);
+
+            if (assistant.id === window.selectedAssistantId) {
+                div.addClass('active');
+            }
+
+            div.on('click', function() {
+                const assistantId = $(this).data('id');
+
+                if (window.selectedAssistantId === assistantId) {
+                    window.selectedAssistantId = null;
+                    $(this).removeClass('active');
+                    showToast('Assistant deselected');
+                } else {
+                    $('.assistant-item').removeClass('active');
+                    $(this).addClass('active');
+                    window.selectedAssistantId = assistantId;
+                    showToast(`Assistant "${titleSpan.text()}" selected`);
+                }
+
+                closeOffcanvas();
+                $('#message-input').focus();
+            });
+
+            containers.each(function() {
+                $(this).append(div.clone(true));
+            });
+        });
+    }
+}
+
+
+
+// conversation ops
 window.startNewConversation = function() {
     currentConversationId = Date.now().toString();
     $('#chat-messages').empty();
     loadConversations();
+    closeOffcanvas();
+    $('#message-input').focus();
 };
 
-window.sendMessage = function() {
+window.sendMessage = function()
+{
     if (!currentConversationId) {
         startNewConversation();
     }
-    
+
     const messageInput = $('#message-input');
     const message = messageInput.val().trim();
-    const assistantId = $('#assistant-select').val();
-    
+    const assistantId = window.selectedAssistantId;
+
     if (!message) return;
-    
+
     appendMessage(message, true);
     messageInput.val('').focus();
 
     const loadingIndicator = showTypingIndicator();
     let responseDiv = null;
     let fullContent = '';
-    
-    $.ajax({
+    $('#stopBtn').show();
+
+    currentAjaxRequest =  $.ajax({
         url: '/send-message',
         method: 'POST',
         data: {
@@ -60,7 +285,7 @@ window.sendMessage = function() {
                 const response = e.currentTarget.response;
                 const newContent = response.slice(this.lastResponseLength || 0);
                 this.lastResponseLength = response.length;
-                
+
                 newContent.split('\n').forEach(line => {
                     if (line.trim()) {
                         try {
@@ -84,12 +309,14 @@ window.sendMessage = function() {
             }
         },
         complete: function() {
+            currentAjaxRequest = null;
             if (loadingIndicator) {
                 loadingIndicator.remove();
             }
+            $('#stopBtn').hide();
             loadConversation(currentConversationId);
             loadConversations();
-            
+
         },
         error: function(xhr, status, error) {
             console.error('Ajax error:', status, error);
@@ -101,21 +328,8 @@ window.sendMessage = function() {
     });
 };
 
-// window.deleteConversation = function(id) {
-//     $.post('/conversation/delete', { id }, function(response) {
-//         if (response.success) {
-//             if (currentConversationId === id) {
-//                 currentConversationId = null;
-//                 $('#chat-messages').empty();
-//             }
-//             loadConversations();
-//         }
-//     });
-// };
-
 window.deleteConversation = function(id) {
-    if (confirm('Are you sure you want to delete this conversation?')) {
-        $.ajax({
+    $.ajax({
             url: `/conversation/delete/${id}`,
             method: 'POST',
             success: function(response) {
@@ -135,7 +349,6 @@ window.deleteConversation = function(id) {
                 showToast('Error deleting conversation', 'error');
             }
         });
-    }
 };
 
 window.updateConversationTitle = function(id, newTitle) {
@@ -149,11 +362,281 @@ window.updateConversationTitle = function(id, newTitle) {
     });
 };
 
-// Helper functions (can remain non-global as they're only called from within our code)
+window.stopGeneration = function() {
+    if (currentAjaxRequest) {
+        currentAjaxRequest.abort();
+        currentAjaxRequest = null;
+        if (loadingIndicator) {
+            loadingIndicator.remove();
+        }
+        $('#stopBtn').hide();
+        showToast('Generation stopped');
+    }
+};
+
+function loadConversations() {
+    $.post('/conversations', function(data) {
+        const containers = $('.conversations-container');
+        containers.empty();
+
+        if (!data.conversations || !Array.isArray(data.conversations)) {
+            return;
+        }
+
+        renderConversations(data.conversations, containers);
+    });
+}
+
+function searchConversations(query) {
+    $.post('/conversation/search', { query }, function(response) {
+        console.log('conversations search response:', response);
+        const containers = $('.conversations-container');
+        containers.empty();
+
+        if (!response.success) {
+            containers.append($('<div>').addClass('p-3 text-muted').text('An error occurred while searching'));
+            return;
+        }
+
+        // Check if we have any results
+        if (!response.conversations ||
+            (Array.isArray(response.conversations) && response.conversations.length === 0) ||
+            (typeof response.conversations === 'object' && Object.keys(response.conversations).length === 0)) {
+            containers.append($('<div>').addClass('p-3 text-muted').text('No results found'));
+            return;
+        }
+
+        // handle object/array issue
+        const conversations = Array.isArray(response.conversations) ?
+            response.conversations :
+            Object.values(response.conversations);
+
+        renderConversations(conversations, containers);
+
+    }).fail(function() {
+        const containers = $('.conversations-container');
+        containers.empty();
+        containers.append($('<div>').addClass('p-3 text-muted').text('An error occurred while searching'));
+    });
+}
+
+function renderConversations(conversations, containers) {
+    conversations.forEach(conv => {
+        const div = $('<div>')
+            .addClass('conversation-item')
+            .attr('data-id', conv.id);
+
+        const titleDiv = $('<div>')
+            .addClass('conversation-title d-flex align-items-center justify-content-between');
+
+        const titleSpan = $('<span>')
+            .text(conv.title)
+            .addClass('conversation-name')
+            .css({
+                'min-width': '100px',
+                'white-space': 'pre-wrap',
+                'word-break': 'break-word'
+            });
+
+        const btnContainer = $('<div>').addClass('d-flex gap-2');
+
+        // Edit button
+        const editBtn = $('<button>')
+            .addClass('btn btn-secondary btn-sm')
+            .html('<i class="fas fa-pencil"></i>')
+            .on('click', function(e) {
+                e.stopPropagation();
+
+                const currentTitleSpan = $(this).closest('.conversation-title').find('.conversation-name');
+                currentTitleSpan
+                    .attr('contenteditable', 'true')
+                    .focus();
+
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.selectNodeContents(currentTitleSpan[0]);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
+
+                const saveEdit = () => {
+                    const newTitle = currentTitleSpan.text().trim();
+                    if (newTitle && newTitle !== conv.title) {
+                        updateConversationTitle(conv.id, newTitle);
+                    } else {
+                        currentTitleSpan.text(conv.title);
+                    }
+                    currentTitleSpan.removeAttr('contenteditable');
+                    currentTitleSpan.off('blur keydown');
+                };
+
+                currentTitleSpan
+                    .on('blur', saveEdit)
+                    .on('keydown', function(e) {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveEdit();
+                            currentTitleSpan.blur();
+                        } else if (e.key === 'Escape') {
+                            currentTitleSpan.text(conv.title);
+                            currentTitleSpan.removeAttr('contenteditable');
+                            currentTitleSpan.off('blur keydown');
+                            currentTitleSpan.blur();
+                        }
+                    });
+            });
+
+        // Delete button
+        const deleteBtn = $('<button>')
+            .addClass('btn btn-danger btn-sm')
+            .html('<i class="fas fa-trash"></i>')
+            .attr('data-delete-state', 'initial')
+            .on('click', function(e) {
+                e.stopPropagation();
+                const btn = $(this);
+                const currentState = btn.attr('data-delete-state');
+
+                if (currentState === 'initial') {
+                    btn.html('Sure?');
+                    btn.attr('data-delete-state', 'confirm');
+
+                    setTimeout(() => {
+                        if (btn.attr('data-delete-state') === 'confirm') {
+                            btn.html('<i class="fas fa-trash"></i>');
+                            btn.attr('data-delete-state', 'initial');
+                        }
+                    }, 3000);
+                } else {
+                    deleteConversation(conv.id);
+                }
+            });
+
+        btnContainer.append(editBtn, deleteBtn);
+        titleDiv.append(titleSpan, btnContainer);
+        div.append(titleDiv);
+
+        if (conv.id === currentConversationId) {
+            div.addClass('active');
+        }
+
+        div.on('click', function(e) {
+            if (!$(this).find('.conversation-name').attr('contenteditable')) {
+                loadConversation(conv.id);
+            }
+        });
+
+        // Append to each container (for desktop and mobile views)
+        containers.each(function() {
+            $(this).append(div.clone(true));
+        });
+    });
+}
+
+//load an individual conversation
+function loadConversation(id) {
+    currentConversationId = id;
+    $.post('/conversation/load', { id }, function(conversation) {
+        $('#chat-messages').empty();
+        if (conversation && conversation.messages) {
+            conversation.messages.forEach(msg => {
+                appendMessage(msg.prompt, true);  // User message
+                if (msg.response) {
+                    appendMessage(msg.response, false);  // AI response
+                }
+            });
+        }
+        loadConversations();
+        closeOffcanvas();
+    });
+}
+
+//formatting and adding copy to rendered finished ai messages
+function appendMessage(content, isUser) {
+    const messageDiv = $('<div>')
+        .addClass('message')
+        .addClass(isUser ? 'user-message' : 'ai-message');
+
+    // Add copy button container
+    const copyContainer = $('<div>')
+        .addClass('copy-container')
+        .append(
+            $('<button>')
+                .addClass('copy-button')
+                .html('<i class="fa-regular fa-clipboard"></i>')
+                .attr('title', 'Copy message')
+                .on('click', function() {
+                    copyToClipboard(content, this);
+                })
+        );
+
+    if (isUser) {
+        messageDiv.text(content);
+    } else {
+        const formattedContent = parseAndFormatContent(content);
+        messageDiv.html(formattedContent);
+
+        // Add copy buttons to code blocks
+        messageDiv.find('pre').each(function() {
+            const preElement = $(this);
+            const codeContent = preElement.find('code').text();
+
+            const codeCopyBtn = $('<button>')
+                .addClass('code-copy-button')
+                .html('<i class="fa-regular fa-clipboard"></i>')
+                .attr('title', 'Copy code')
+                .on('click', function(e) {
+                    e.stopPropagation();
+                    copyToClipboard(codeContent, this);
+                });
+
+            preElement.append(codeCopyBtn);
+        });
+
+        // Initialize syntax highlighting
+        messageDiv.find('pre code').each((i, el) => {
+            hljs.highlightElement(el);
+        });
+    }
+
+    messageDiv.append(copyContainer);
+    $('#chat-messages').append(messageDiv);
+    $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
+}
+
+
+//theme ops
+
+function initializeTheme() {
+    // Check for saved theme preference or default to light
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute('data-bs-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.querySelector('.theme-toggle i');
+    icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+
+// Helper functions
 function showToast(message, type = 'success') {
+    // Map 'error' to Bootstrap's 'danger' class
+    const bgType = type === 'error' ? 'danger' : type;
+
     const toast = $(`
         <div class="toast-container position-fixed top-0 end-0 p-3">
-            <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="toast align-items-center text-white bg-${bgType} border-0" role="alert">
                 <div class="d-flex">
                     <div class="toast-body">${message}</div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -161,12 +644,12 @@ function showToast(message, type = 'success') {
             </div>
         </div>
     `);
-    
+
     $('body').append(toast);
     const toastEl = toast.find('.toast');
     const bsToast = new bootstrap.Toast(toastEl);
     bsToast.show();
-    
+
     toastEl.on('hidden.bs.toast', function() {
         toast.remove();
     });
@@ -187,190 +670,17 @@ function showTypingIndicator() {
     return indicator;
 }
 
-function loadConversations() {
-    $.post('/conversations', function(data) {
-        const container = $('#conversations');
-        container.empty();
-        
-        if (data.conversations && Array.isArray(data.conversations)) {
-            data.conversations.forEach(conv => {
-                const div = $('<div>')
-                    .addClass('conversation-item')
-                    .attr('data-id', conv.id);
-                
-                const titleDiv = $('<div>')
-                    .addClass('conversation-title d-flex align-items-center justify-content-between')
-                    .append(
-                        $('<span>').text(conv.title),
-                        $('<div>').addClass('d-flex gap-2').append(
-                            $('<button>')
-                                .addClass('btn btn-secondary btn-sm')
-                                .html('<i class="fas fa-pencil"></i>')
-                                .on('click', function(e) {
-                                    e.stopPropagation();
-                                    const newTitle = prompt('Enter new title:', conv.title);
-                                    if (newTitle) {
-                                        updateConversationTitle(conv.id, newTitle);
-                                    }
-                                }),
-                            $('<button>')
-                                .addClass('btn btn-danger btn-sm')
-                                .html('<i class="fas fa-trash"></i>')
-                                .on('click', function(e) {
-                                    e.stopPropagation();
-                                    deleteConversation(conv.id);
-                                    
-                                })
-                        )
-                    );
-                
-                div.append(titleDiv);
-                
-                if (conv.id === currentConversationId) {
-                    div.addClass('active');
-                }
-                
-                div.click(() => loadConversation(conv.id));
-                container.append(div);
-            });
-        }
-    });
-}
-
-// function loadConversation(id) {
-//         currentConversationId = id;
-//         $.ajax({
-//             url: '/conversation/load',
-//             method: 'POST',
-//             data: { id: id },
-//             success: function(conversation) {
-//                 $('#chat-messages').empty();
-//                 if (conversation && conversation.messages) {
-//                     conversation.messages.forEach(msg => {
-//                         appendMessage(msg.prompt, true);
-//                         if (msg.response) {
-//                             appendMessage(msg.response, false);
-//                         }
-//                     });
-//                 }
-//                 loadConversations();
-//             },
-//             error: function(xhr, status, error) {
-//                 console.error('Error loading conversation:', error);
-//                 showToast('Error loading conversation', 'error');
-//             }
-//         });
-//     }
-
-    // function loadConversation(id) {
-    //     currentConversationId = id;
-    //     $.post('/conversation/load', { id }, function(conversation) {
-    //         $('#chat-messages').empty();
-    //         if (conversation && conversation.messages) {
-    //             conversation.messages.forEach(msg => {
-    //                 const messageDiv = $('<div>')
-    //                     .addClass('message')
-    //                     .addClass('user-message')
-    //                     .text(msg.prompt);
-    //                 $('#chat-messages').append(messageDiv);
-
-    //                 if (msg.response) {
-    //                     const formattedContent = parseAndFormatContent(msg.response);
-    //                     const responseDiv = $('<div>')
-    //                         .addClass('message')
-    //                         .addClass('ai-message')
-    //                         .html(formattedContent);
-
-    //                     responseDiv.find('pre code').each((i, el) => {
-    //                         hljs.highlightElement(el);
-    //                     });
-    //                     $('#chat-messages').append(responseDiv);
-    //                 }
-    //             });
-    //         }
-    //         loadConversations();
-    //     });
-    // }
-    function loadConversation(id) {
-        currentConversationId = id;
-        $.post('/conversation/load', { id }, function(conversation) {
-            $('#chat-messages').empty();
-            if (conversation && conversation.messages) {
-                conversation.messages.forEach(msg => {
-                    appendMessage(msg.prompt, true);  // User message
-                    if (msg.response) {
-                        appendMessage(msg.response, false);  // AI response
-                    }
-                });
-            }
-            loadConversations();
-        });
-    }
-
-
-    function appendMessage(content, isUser) {
-        const messageDiv = $('<div>')
-            .addClass('message')
-            .addClass(isUser ? 'user-message' : 'ai-message');
-    
-        // Add copy button container
-        const copyContainer = $('<div>')
-            .addClass('copy-container')
-            .append(
-                $('<button>')
-                    .addClass('copy-button')
-                    .html('<i class="fas fa-copy"></i>')
-                    .attr('title', 'Copy message')
-                    .on('click', function() {
-                        copyToClipboard(content, this);
-                    })
-            );
-    
-        if (isUser) {
-            messageDiv.text(content);
-        } else {
-            const formattedContent = parseAndFormatContent(content);
-            messageDiv.html(formattedContent);
-            
-            // Add copy buttons to code blocks
-            messageDiv.find('pre').each(function() {
-                const preElement = $(this);
-                const codeContent = preElement.find('code').text();
-                
-                const codeCopyBtn = $('<button>')
-                    .addClass('code-copy-button')
-                    .html('<i class="fas fa-copy"></i>')
-                    .attr('title', 'Copy code')
-                    .on('click', function(e) {
-                        e.stopPropagation();
-                        copyToClipboard(codeContent, this);
-                    });
-                
-                preElement.append(codeCopyBtn);
-            });
-            
-            // Initialize syntax highlighting
-            messageDiv.find('pre code').each((i, el) => {
-                hljs.highlightElement(el);
-            });
-        }
-    
-        messageDiv.append(copyContainer);
-        $('#chat-messages').append(messageDiv);
-        $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
-    }
-    
-    async function copyToClipboard(text, buttonElement) {
+async function copyToClipboard(text, buttonElement) {
         try {
             await navigator.clipboard.writeText(text);
-            
+
             // Visual feedback
             const $button = $(buttonElement);
             const originalHtml = $button.html();
-            
+
             $button.html('<i class="fas fa-check"></i>');
             $button.addClass('copied');
-            
+
             setTimeout(() => {
                 $button.html(originalHtml);
                 $button.removeClass('copied');
@@ -378,9 +688,9 @@ function loadConversations() {
         } catch (err) {
             console.error('Failed to copy:', err);
         }
-    }
+}
 
-    function parseAndFormatContent(content) {
+function parseAndFormatContent(content) {
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -392,7 +702,7 @@ function loadConversations() {
 
         // Check if content appears to be code
         const codePattern = /^(import|class|function|def|var|const|let|public|private|#include|package)\b/;
-        
+
         if (codePattern.test(content.trim())) {
             const escapedCode = escapeHtml(content);
             return `<pre><code class="language-javascript">${escapedCode}</code></pre>`;
@@ -413,17 +723,129 @@ function loadConversations() {
             console.error('Markdown parsing failed:', e);
             return escapeHtml(content);
         }
+}
+
+function closeOffcanvas() {
+    const toggleButton = document.querySelector('[data-bs-dismiss="offcanvas"]');
+    if (toggleButton) {
+        toggleButton.click();
+        clearAllSearches();
+    }
+}
+
+function clearSearch(container) {
+    const input = container.find('input');
+    input.val('');
+    container.find('.search-results').hide();
+
+    // Reload original data
+    if (container.find('.assistant-search-input').length) {
+        loadAssistants();
+    } else {
+        loadConversations();
     }
 
-$('#model-select').change(function() {
+    container.removeClass('active').hide();
+}
+
+function clearAllSearches() {
+    $('.search-container').each(function() {
+        const container = $(this);
+        const input = container.find('input');
+        input.val('');
+        container.find('.search-results').hide();
+
+        // Determine which type of container and reload appropriate data
+        if (container.find('.assistant-search-input').length) {
+            loadAssistants();
+        } else {
+            loadConversations();
+        }
+
+        container.removeClass('active').hide();
+    });
+}
+
+
+// document ready ops
+$(document).ready(function() {
+
+    loadConversations();
+    loadAssistants();
+    initializeTheme();
+    $('#message-input').focus();
+    // Toggle search containers - delegated
+    $(document).on('click', '.search-toggle', function() {
+        const targetType = $(this).data('target');
+        const containerClass = targetType.replace('search', 'search-container');
+        const searchContainer = $(this).closest('.card').find(`.${containerClass}`);
+
+        searchContainer.toggle();
+        if (searchContainer.is(':visible')) {
+            searchContainer.find('input').focus();
+        } else {
+            clearSearch(searchContainer);
+        }
+    });
+
+    // Clear search - delegated
+    $(document).on('click', '.search-clear', function() {
+        const container = $(this).closest('.search-container');
+        clearSearch(container);
+    });
+
+    // Handle assistant search - delegated
+    $(document).on('keyup', '.assistant-search-input', function(e) {
+        if (e.key === 'Enter') {
+            const query = $(this).val().trim();
+            if (query) {
+                searchAssistants(query);
+            }
+        } else if (e.key === 'Escape') {
+            clearSearch($(this).closest('.search-container'));
+        }
+    });
+
+    // Handle conversation search - delegated
+    $(document).on('keyup', '.conversation-search-input', function(e) {
+        if (e.key === 'Enter') {
+            const query = $(this).val().trim();
+            if (query) {
+                searchConversations(query);
+            }
+        } else if (e.key === 'Escape') {
+            clearSearch($(this).closest('.search-container'));
+        }
+    });
+});
+
+//event listeners
+$('.model-selector').change(function() {
     const model = $(this).val();
+    const allSelectors = $('.model-selector');
+
+    // Keep all selectors in sync
+    allSelectors.val(model);
+
     $.post('/model/switch', { model }, function(response) {
         if (response.success) {
             showToast('Model switched successfully');
+            closeOffcanvas();
+            $('#message-input').focus();
         } else {
             showToast('Error switching model', 'error');
         }
     });
+});
+
+$('.assistant-selector').change(function() {
+    const assistantId = $(this).val();
+    const allSelectors = $('.assistant-selector');
+
+    // Keep all selectors in sync
+    allSelectors.val(assistantId);
+    closeOffcanvas();
+    $('#message-input').focus();
 });
 
 $('#message-input').keypress(function(e) {
@@ -433,21 +855,37 @@ $('#message-input').keypress(function(e) {
     }
 });
 
-// Initialize CSRF token for AJAX requests
+$('#assistantForm').on('keydown', function(e) {
+    // Check if Enter was pressed and Shift wasn't held
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();  // Prevent form submission
+        saveAssistant();    // Trigger save
+    }
+});
+
+// Also prevent the textarea from submitting on Enter
+$('#assistant-prompt').on('keydown', function(e) {
+    // Only prevent if it's Enter without Shift
+    // This allows Shift+Enter for new lines in the prompt
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+    }
+});
+
+
+$('.theme-toggle').on('click', toggleTheme);
+
+//utilities
+
 $.ajaxSetup({
     headers: {
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     }
 });
 
-// Initialize on page load
-$(document).ready(function() {
-    loadConversations();
-});
-
 document.addEventListener('DOMContentLoaded', (event) => {
     hljs.configure({
         ignoreUnescaped: true,
-        languages: ['javascript', 'php', 'python']
+        languages: ['javascript', 'php', 'python', 'html']
     });
 });
