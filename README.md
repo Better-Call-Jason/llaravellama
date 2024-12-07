@@ -2,9 +2,6 @@
 
 Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut butter and chocolate to create the most versatile private chat suite available. Built for privacy enthusiasts and AI aficionados alike, LlaravaLlama brings enterprise-level features to your local machine.
 
-## 🎮 Live Demo
-[Try LlaravaLlama Now](https://demo.llaravallama.com) <!-- Replace with actual demo URL -->
-
 ## 📸 Preview
 
 <div align="center">
@@ -30,6 +27,9 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **Theme Options**: Soft daylight and tender moonlight themes for comfortable viewing
 - **Lightweight**: Runs smoothly on modest hardware - from cloud VPS to your old laptop
 
+## 🎮 Live Demo
+[Try LlaravaLlama Now](https://llaravallama.com)
+
 ## 🛠 Technical Requirements
 
 - PHP 8.1 or higher
@@ -52,7 +52,7 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/laravallama.git
+git clone https://github.com/Better-Call-Jason/llaravellama.git
 
 # Install dependencies
 composer install
