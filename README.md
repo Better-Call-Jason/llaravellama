@@ -9,7 +9,7 @@ Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut but
   <br />
   <em>LlaravaLlama in action - showcasing features and themes</em>
 </div>
- 
+
 ## ✨ Why LlaravaLlama?
 
 LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful local AI models to create a completely private, self-hosted chat experience. From its eye-pleasing daylight theme to its soothing moonlight mode, every detail is crafted for your comfort and productivity.
@@ -26,6 +26,8 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **JSON Storage**: Simple, efficient local storage for all your conversations
 - **Theme Options**: Soft daylight and tender moonlight themes for comfortable viewing
 - **Lightweight**: Runs smoothly on modest hardware - from cloud VPS to your old laptop
+- **Full Debug Mode**: Out-of-the-box debugging support for mobile testing and development
+- **Service Debugging**: Easily toggle comprehensive service-level debugging for troubleshooting
 
 ## 🎮 Live Demo
 [Try LlaravaLlama Now](https://llaravallama.com)
@@ -33,6 +35,8 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 ## 🛠 Technical Requirements
 
 - PHP 8.1 or higher
+- PHP-Curl
+- Php-XML
 - Composer
 - Node.js & NPM
 - Ollama installation
@@ -43,16 +47,15 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 1. Deploy LlaravaLlama on your:
     - Local PC
     - Cloud server (e.g., Linode)
-    - Home server
 2. Configure port forwarding
-3. Connect via IP address and port from your mobile device
+3. Connect to the ip address the machine running the app: `http://your_computer_ip_address:8000/`
 4. Enjoy a premium mobile AI chat experience!
 
 ## 💾 Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/Better-Call-Jason/llaravellama.git
+git clone https://github.com/Better-Call-Jason/LlaraveLlama.git
 
 # Install dependencies
 composer install
@@ -63,10 +66,55 @@ cp .env.example .env
 php artisan key:generate
 
 # Start the services
-php artisan serve
+php artisan serve --host=0.0.0.0 --port=8000
 npm run dev
 ollama serve
+
+#open port in firewall if needed
+sudo ufw allow 8000
 ```
+
+## 🔍 Debugging Features
+
+LlaravaLlama comes with comprehensive debugging capabilities out of the box:
+
+### Mobile Debug Mode
+The app includes a full debug mode that works seamlessly on mobile devices. After completing the installation steps above, debugging is automatically available on your mobile device - no additional setup required.
+
+[Previous sections remain the same until the Debugging Features section]
+
+## 🔍 Debugging Features
+
+LlaravaLlama comes with comprehensive debugging capabilities that can be easily enabled in your development environment:
+
+### Enabling Debug Mode
+
+Debug mode can be toggled in your `resources/views/app.blade.php`:
+
+1. Set the debug panel flag:
+```javascript
+window.DEBUG_PANEL = true; // Enable debug mode
+```
+
+2. Enable the debug partial:
+```php
+@include('chat.partials.debug', ['debugEnabled' => true])
+```
+
+This will enable debugging features across all environments, including mobile devices. The debug panel provides detailed insights into:
+- Application state
+- Service operations
+- API calls
+- System interactions
+
+When disabled (default production settings):
+```javascript
+window.DEBUG_PANEL = false;
+```
+```php
+@include('chat.partials.debug', ['debugEnabled' => false])
+```
+This provides detailed insights into service operations, API calls, and system interactions.
 
 ## 👨‍💻 About the Author
 

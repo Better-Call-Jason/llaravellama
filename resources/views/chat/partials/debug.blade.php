@@ -1,5 +1,5 @@
 @if($debugEnabled)
-    <div id="debug-info" style="position: fixed; top: 0; left: 0; z-index: 9999; background: rgba(0,0,0,0.8); color: white; padding: 10px; width: 100%; font-size: 12px; height: 100%; overflow-y: auto;">
+    <div id="debug-info" style="position: fixed; top: 0; left: 0; z-index: 9999; background: rgba(0,0,0,0.8); color: white; padding: 10px; width: 50%; font-size: 12px; height: 50%; overflow-y: auto;">
         <div style="margin-bottom: 10px; border-bottom: 1px solid white;">Debug Information</div>
         <div id="debug-content"></div>
         <div id="static-debug">
