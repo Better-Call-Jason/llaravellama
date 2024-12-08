@@ -2,8 +2,23 @@
 
 
 @section('content')
+    <style>
+        .card-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: var(--card-spacing);
+            max-width: 100%;
+            background-color: transparent !important;
+        }
+        .card .card-body,
+        [data-bs-theme="dark"] .card .card-body {
+            background-color: transparent !important;
+        }
+    </style>
 <!-- Main Container -->
-<div class="container-fluid">
+<div class="container-fluid h-100">
     <!-- Header Row -->
     <div class="row header-row">
         <div class="col-12">
@@ -61,7 +76,7 @@
                                     <button class="btn btn-danger" title="stop generation" onclick="stopGeneration()" id="stopBtn" style="display: none;">
                                         <i class="fa-solid fa-traffic-light"></i>
                                     </button>
-                                    <button class="btn btn-primary px-4" title="send message" onclick="sendMessage()">
+                                    <button class="btn btn-brand px-4" title="send message" onclick="sendMessage()">
                                         <i class="fas fa-paper-plane"></i>
                                     </button>
                                 </div>
@@ -114,11 +129,12 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="saveAssistant()">Save</button>
+                <button type="button" class="btn btn-brand" onclick="saveAssistant()">Save</button>
             </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')

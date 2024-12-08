@@ -1,6 +1,39 @@
 // Global variables
+const DEBUG = window.DEBUG_PANEL;
 let currentConversationId = null;
 let currentAjaxRequest = null;
+
+//DEBUG
+function debugLog(message) {
+    if (!DEBUG) return;
+
+    const debugInfo = document.getElementById('debug-info');
+    if (debugInfo) {
+        const timestamp = new Date().toLocaleTimeString();
+        debugInfo.innerHTML += `[${timestamp}] ${message}<br>`;
+    }
+    console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+}
+
+//mobile keyboard dismsisal:
+function dismissMobileKeyboard() {
+    // First blur any focused elements
+    if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+    }
+
+    // Force blur on the send button and message input
+    $('#message-input').blur();
+    $('.btn-brand').blur();
+
+    // Remove any focus classes that might be stuck
+    $('.btn-brand').removeClass('focus active');
+
+    // Force hide keyboard on iOS
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    window.scrollTo(0, 0);
+}
 
 
 //assistants ops
@@ -103,6 +136,7 @@ window.deleteAssistant = function(id) {
 };
 
 function loadAssistants() {
+    debugLog('Loading assistants...');
     return new Promise((resolve) => {
         $.post('/assistants', function(data) {
             const containers = $('.assistants-container');
@@ -114,7 +148,6 @@ function loadAssistants() {
 
 function searchAssistants(query) {
     $.post('/assistant/search', { query }, function(response) {
-        console.log('assistants search response:', response);
         const containers = $('.assistants-container');
         containers.empty();
 
@@ -264,6 +297,10 @@ window.sendMessage = function()
 
     if (!message) return;
 
+    // Clear the input and dismiss keyboard before sending
+    messageInput.val('');
+    dismissMobileKeyboard();
+
     appendMessage(message, true);
     messageInput.val('').focus();
 
@@ -314,6 +351,7 @@ window.sendMessage = function()
                 loadingIndicator.remove();
             }
             $('#stopBtn').hide();
+            $('.btn-brand').blur().removeClass('focus active');
             loadConversation(currentConversationId);
             loadConversations();
 
@@ -375,6 +413,7 @@ window.stopGeneration = function() {
 };
 
 function loadConversations() {
+    debugLog('Loading conversations...');
     $.post('/conversations', function(data) {
         const containers = $('.conversations-container');
         containers.empty();
@@ -389,7 +428,6 @@ function loadConversations() {
 
 function searchConversations(query) {
     $.post('/conversation/search', { query }, function(response) {
-        console.log('conversations search response:', response);
         const containers = $('.conversations-container');
         containers.empty();
 
@@ -608,6 +646,7 @@ function appendMessage(content, isUser) {
 //theme ops
 
 function initializeTheme() {
+    debugLog('Initializing theme...');
     // Check for saved theme preference or default to light
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
@@ -627,7 +666,6 @@ function updateThemeIcon(theme) {
     const icon = document.querySelector('.theme-toggle i');
     icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
-
 
 // Helper functions
 function showToast(message, type = 'success') {
@@ -770,6 +808,31 @@ function clearAllSearches() {
 // document ready ops
 $(document).ready(function() {
 
+    debugLog('Document Ready');
+    debugLog('=== PAGE LOAD ===');
+    debugLog(`Window dimensions: ${window.innerWidth}x${window.innerHeight}`);
+    debugLog(`User Agent: ${navigator.userAgent}`);
+    debugLog(`URL: ${window.location.href}`);
+
+    // Check if we're in a mobile browser
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    debugLog(`Is Mobile Browser: ${isMobile}`);
+
+    // Check for critical resources
+    debugLog(`jQuery loaded: ${typeof $ !== 'undefined'}`);
+    debugLog(`Bootstrap loaded: ${typeof bootstrap !== 'undefined'}`);
+    debugLog(`Showdown loaded: ${typeof showdown !== 'undefined'}`);
+    debugLog(`Highlight.js loaded: ${typeof hljs !== 'undefined'}`);
+
+    // Check for critical elements
+    debugLog(`Chat messages div: ${$('#chat-messages').length > 0}`);
+    debugLog(`Message input: ${$('#message-input').length > 0}`);
+    debugLog(`Sidebar: ${$('.sidebar-column').length > 0}`);
+
+    // Check CSRF token
+    debugLog(`CSRF token: ${$('meta[name="csrf-token"]').length > 0}`);
+
+
     loadConversations();
     loadAssistants();
     initializeTheme();
@@ -817,6 +880,10 @@ $(document).ready(function() {
             clearSearch($(this).closest('.search-container'));
         }
     });
+
+    window.addEventListener('resize', function() {
+        debugLog(`Window resized to: ${window.innerWidth}x${window.innerHeight}`);
+    });
 });
 
 //event listeners
@@ -849,9 +916,13 @@ $('.assistant-selector').change(function() {
 });
 
 $('#message-input').keypress(function(e) {
-    if (e.which == 13 && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        $(this).blur();
+        dismissMobileKeyboard();
         sendMessage();
+        // Remove focus from any buttons
+        $('.btn-brand').blur().removeClass('focus active');
     }
 });
 
@@ -884,6 +955,7 @@ $.ajaxSetup({
 });
 
 document.addEventListener('DOMContentLoaded', (event) => {
+
     hljs.configure({
         ignoreUnescaped: true,
         languages: ['javascript', 'php', 'python', 'html']

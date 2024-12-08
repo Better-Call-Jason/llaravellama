@@ -48,6 +48,12 @@
 }
 
 /* Base Layout */
+html, body {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
 
 body {
     background-color: var(--body-bg);
@@ -162,6 +168,7 @@ body {
     flex-direction: column;
     padding: var(--card-spacing);
     max-width: 100%;
+
 }
 
 /* Containers */
@@ -303,25 +310,42 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn.btn-primary {
-    background-color: var(--brand-blue) !important;
-    border-color: var(--brand-blue) !important;
-    color: white !important;
+/* Custom brand button */
+.btn-brand {
+    background-color: var(--brand-blue);
+    border-color: var(--brand-blue);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 0.375rem;
+    transition: color .15s ease-in-out,
+    background-color .15s ease-in-out,
+    border-color .15s ease-in-out,
+    box-shadow .15s ease-in-out;
 }
 
-.btn.btn-primary:hover,
-.btn.btn-primary:focus,
-.btn.btn-primary:active {
-    background-color: #2563eb !important;
-    border-color: #2563eb !important;
+.btn-brand:hover,
+.btn-brand:focus,
+.btn-brand:active,
+.btn-brand.active {
+    background-color: var(--text-slate-lighter);
+    border-color: var(--text-slate);
+    color: white;
 }
 
-.btn.btn-primary:disabled,
-.btn.btn-primary.disabled {
-    background-color: rgba(59, 130, 246, 0.65) !important;
-    border-color: rgba(59, 130, 246, 0.65) !important;
+.btn-brand:focus {
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
 }
 
+.btn-brand:disabled,
+.btn-brand.disabled {
+    background-color: rgba(59, 130, 246, 0.65);
+    border-color: rgba(59, 130, 246, 0.65);
+    color: white;
+    pointer-events: none;
+}
+
+/* Keep your existing btn-secondary styles */
 .btn-secondary {
     background-color: transparent;
     border: none;
@@ -335,7 +359,7 @@ body {
     color: var(--text-slate);
 }
 
-.btn-danger {
+.btn--branded-danger {
     background-color: transparent;
     border: none;
     color: var(--text-slate-lighter);
@@ -343,12 +367,12 @@ body {
     font-size: 0.875rem;
 }
 
-.btn-danger:hover {
+.btn-branded-danger:hover {
     background-color: rgba(239, 68, 68, 0.1);
     color: var(--danger);
 }
 
-.btn-danger[data-delete-state="confirm"] {
+.btn-branded-danger[data-delete-state="confirm"] {
     color: var(--danger);
     background-color: rgba(239, 68, 68, 0.1);
     animation: pulse 1s infinite;
@@ -639,164 +663,166 @@ pre code.hljs {
     100% { transform: scale(1); }
 }
 
+.card,
+.card-body,
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .card-body {
+    background-color: transparent !important;
+}
 
-/* Responsive Design */
-@media (max-width: 991.98px) {
-    .sidebar-column {
-        display: none;
-    }
 
-    .user-message {
-        margin-left: 0;
-        margin-right: 0;
-        padding: 8px 12px;
-        border-radius: 5px;
-    }
+.card {
+    border-color: var(--card-border);
+}
 
-    .ai-message {
-        margin-right: 0;
-        margin-left: 0;
-        padding: 8px 12px;
-        border-radius: 5px;
-    }
 
-    /* Adjust copy button position for smaller padding */
-    .copy-container {
-        top: 4px;
-        right: 4px;
-    }
+* {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--brand-blue) transparent !important;
+}
 
-    /* Adjust code block padding in mobile */
-    .message pre {
-        margin: 8px 0;
-        padding: 12px;
-    }
+/* Target specific containers */
+#chat-messages,
+.assistants-container,
+.conversations-container,
+.textarea-container,
+#message-input,
+pre {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--brand-blue) transparent !important;
+}
 
-    .chat-column {
-        flex: 0 0 100%;
-        max-width: 100%;
-        margin: 0;
-        padding: 0;
-        padding-bottom: 0 !important;
-    }
+/* Webkit scrollbar styles - ultra thin version */
+::-webkit-scrollbar {
+    width: 2px !important;
+    height: 2px !important;
+}
 
-    .chat-input {
-        padding: 0;
-    }
+::-webkit-scrollbar-track {
+    background: transparent !important;
+}
 
-    .mobile-nav-toggle {
-        display: block !important;
-    }
+::-webkit-scrollbar-thumb {
+    background: var(--brand-blue) !important;
+    border-radius: 0 !important;
+}
 
-    .header-row {
-        padding-top: 1.5em !important;
-        padding-bottom: 0 !important;
-    }
+/* Remove scroll buttons */
+::-webkit-scrollbar-button {
+    display: none !important;
+}
+/* Chat input styling */
+#message-input,
+.form-control {
+    background-color: transparent !important;
+    border: 1px solid var(--border-light) !important;
+    color: var(--body-color) !important;
+}
 
-    @media (max-width: 991.98px) {
-        /* Container and column adjustments */
+/* Remove the focus outline and modify focus state */
+#message-input:focus,
+.form-control:focus {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-color: var(--brand-blue) !important;
+    outline: none !important;
+}
+
+/* Ensure proper text color in dark mode */
+[data-bs-theme="dark"] #message-input,
+[data-bs-theme="dark"] .form-control {
+    color: var(--body-color) !important;
+}
+
+
+@media screen and (max-width: 991.98px) {
+
+         html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
         .container-fluid {
-            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sidebar-column {
+            display: none;
         }
 
-        .row {
-            margin: 0;
+        /* Header sizing */
+        .header-row {
+            flex-shrink: 0;
         }
 
-        .col-lg-9,
+        /* Main content row */
+        .row.g-3 {
+            flex: 1;
+            overflow: hidden;
+            margin: 0 !important;
+        }
+
+        /* Chat column container */
         .chat-column {
-            padding: 0;
+            height: 100%;
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Card adjustments */
-        .card {
-            border: none;
-            border-radius: 0;
+        .chat-column .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
 
-        .card-body {
-            border: none;
-            padding-left: 0;
-            padding-right: 0;
+        .chat-column .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
         }
 
-        /* Chat container adjustments */
+        /* Chat container */
         .chat-container {
-            border: none;
-            margin: 0;
-            padding: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
+        /* Messages area */
         #chat-messages {
-            border: none;
-            padding-left: 8px;
-            padding-right: 8px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            height: auto !important;
         }
 
-        /* Chat input adjustments */
+        /* Input area */
         .chat-input-wrapper {
-            border: none;
-            padding-left: 0;
-            padding-right: 0;
-            border-left: 0;
-            border-right: 0;
-            position: unset;
+            flex-shrink: 0;
+            position: relative;
+            padding: 1rem;
+            /*background: var(--card-bg);*/
+            border-top: 1px solid var(--border-light);
         }
 
-        .chat-input {
-            padding-left: 0;
-            padding-right: 0;
-            margin-left: 0;
-            padding-right: 0;
+        /* Remove the bottom padding fix */
+        .pb-4 {
+            padding-bottom: 0 !important;
         }
 
-        /* Message adjustments */
-        .message {
-            margin-left: 0;
-            margin-right: 0;
-            border-radius: 10px;
+        /* Ensure proper height for textareas */
+        #message-input {
+            max-height: 120px;
         }
 
-        /* Input group adjustments */
-        .input-group {
-            padding-left: 0;
-            padding-right: 0;
-        }
-
-        /* Remove any Bootstrap utility margins/padding that might interfere */
-        [class*="mx-"],
-        [class*="px-"] {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-        }
-
-        /* Keep minimal padding for messages but remove side margins */
-        .user-message,
-        .ai-message {
-            margin-left: 0;
-            margin-right: 0;
-            padding: 8px 12px;
-        }
-
-        /* Adjust code blocks */
-        .message pre {
-            margin-left: 0;
-            margin-right: 0;
-            border-radius: 0;
-        }
-    }
-
-
-    .assistants-container,
-    .conversations-container {
-        flex: 1;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-
-
+    /* Offcanvas specific styles */
     .offcanvas .card {
         height: auto;
         margin-bottom: var(--card-spacing);
@@ -807,10 +833,214 @@ pre code.hljs {
         max-height: 40vh;
         overflow-y: auto;
     }
-}
 
-@media (min-width: 992px) {
-    .mobile-nav-toggle {
-        display: none !important;
+    .btn-brand:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .btn-brand:active {
+        transform: translateY(1px);
+    }
+    .btn-brand:hover {
+        background-color: var(--brand-blue) !important;
+        border-color: var(--brand-blue) !important;
+    }
+
+    #chat-messages {
+        padding: 8px !important;
+    }
+
+    /* Adjust message spacing */
+    .message {
+        margin: 4px 0;
+        padding: 8px 32px 8px 8px;
+    }
+
+    /* Optimize user messages for mobile */
+    .user-message {
+        margin-left: 10%;
+        padding: 8px 12px;
+    }
+
+    /* Optimize AI messages for mobile */
+    .ai-message {
+        margin-right: 10%;
+        padding: 8px 12px;
+    }
+
+    /* Adjust copy button position for mobile */
+    .copy-container {
+        top: 4px;
+        right: 4px;
+    }
+
+    /* Optimize code blocks for mobile */
+    .message pre {
+        margin: 8px 0;
+        padding: 12px;
+    }
+
+    /* Ensure chat container uses maximum available space */
+    .chat-column .card-body {
+        padding: 0;
+    }
+
+    /* Optimize input area spacing */
+    .chat-input-wrapper {
+        padding: 8px;
+    }
+
+    @media screen and (max-width: 991.98px) {
+        /* Core viewport fixes */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        .container-fluid {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+
+        /* Sidebar handling */
+        .sidebar-column {
+            display: none;
+        }
+
+        /* Header sizing */
+        .header-row {
+            flex-shrink: 0;
+            padding: 8px !important;
+        }
+
+        /* Main content row */
+        .row.g-3 {
+            flex: 1;
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Chat column container */
+        .chat-column {
+            height: 100%;
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-column .card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin: 0 !important;
+            border: none;
+            border-radius: 0;
+        }
+
+        .chat-column .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* Chat container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Messages area */
+        #chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px !important;
+            padding-bottom: 16px !important;
+            margin-bottom: 60px; /* Space for input */
+            height: auto !important;
+        }
+
+        /* Message styling */
+        .message {
+            margin: 4px 0;
+            padding: 8px 32px 8px 8px;
+        }
+
+        .user-message {
+            margin-left: 8px;
+            margin-right: 32px;
+            padding: 8px 12px;
+        }
+
+        .ai-message {
+            margin-right: 8px;
+            margin-left: 32px;
+            padding: 8px 12px;
+        }
+
+        /* Input area */
+        .chat-input-wrapper {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-light);
+            z-index: 1000;
+        }
+
+        #message-input {
+            max-height: 120px;
+            padding: 8px;
+        }
+
+        .input-group {
+            gap: 4px;
+        }
+
+        .input-group .btn {
+            padding: 6px 12px;
+        }
+
+        /* Remove padding fixes */
+        .pb-4 {
+            padding-bottom: 0 !important;
+        }
+
+        /* Offcanvas specific styles */
+        .offcanvas .card {
+            height: auto;
+            margin-bottom: var(--card-spacing);
+        }
+
+        .offcanvas .assistants-container,
+        .offcanvas .conversations-container {
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+    }
+
+
+    @media (min-width: 992px) {
+        .mobile-nav-toggle {
+            display: none !important;
+        }
+        .sidebar-column {
+            display: flex;
+        }
     }
 }
+
+

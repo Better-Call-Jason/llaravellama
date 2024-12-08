@@ -22,7 +22,7 @@
             <button class="btn btn-small btn-secondary search-toggle" data-target="assistant-search">
                 <i class="fas fa-search"></i>
             </button>
-            <button class="btn btn-small btn-primary" title="new assistant" onclick="createAssistant()">
+            <button class="btn btn-small btn-brand" title="new assistant" onclick="createAssistant()">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
@@ -53,7 +53,7 @@
             <button class="btn btn-small btn-secondary search-toggle" data-target="conversation-search">
                 <i class="fas fa-search"></i>
             </button>
-            <button class="btn btn-small btn-primary" title="new chat" onclick="startNewConversation()">
+            <button class="btn btn-small btn-brand" title="new chat" onclick="startNewConversation()">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
