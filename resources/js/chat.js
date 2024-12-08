@@ -708,24 +708,84 @@ function showTypingIndicator() {
     return indicator;
 }
 
+// async function copyToClipboard(text, buttonElement) {
+//         try {
+//             await navigator.clipboard.writeText(text);
+//
+//             // Visual feedback
+//             const $button = $(buttonElement);
+//             const originalHtml = $button.html();
+//
+//             $button.html('<i class="fas fa-check"></i>');
+//             $button.addClass('copied');
+//
+//             setTimeout(() => {
+//                 $button.html(originalHtml);
+//                 $button.removeClass('copied');
+//             }, 2000);
+//         } catch (err) {
+//             console.error('Failed to copy:', err);
+//         }
+// }
+
 async function copyToClipboard(text, buttonElement) {
-        try {
+    try {
+        // First try the modern Clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(text);
+        } else {
+            // Fallback for non-HTTPS or browsers that don't support Clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
 
-            // Visual feedback
-            const $button = $(buttonElement);
-            const originalHtml = $button.html();
+            // Make the textarea invisible
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
 
-            $button.html('<i class="fas fa-check"></i>');
-            $button.addClass('copied');
+            // Select and copy
+            textArea.select();
 
-            setTimeout(() => {
-                $button.html(originalHtml);
-                $button.removeClass('copied');
-            }, 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                throw new Error('Copy failed');
+            } finally {
+                document.body.removeChild(textArea);
+            }
         }
+
+        // Visual feedback
+        const $button = $(buttonElement);
+        const originalHtml = $button.html();
+
+        $button.html('<i class="fas fa-check"></i>');
+        $button.addClass('copied');
+
+        setTimeout(() => {
+            $button.html(originalHtml);
+            $button.removeClass('copied');
+        }, 2000);
+
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        // Show error feedback to user
+        const $button = $(buttonElement);
+        const originalHtml = $button.html();
+
+        $button.html('<i class="fas fa-times"></i>');
+        $button.addClass('copy-error');
+
+        setTimeout(() => {
+            $button.html(originalHtml);
+            $button.removeClass('copy-error');
+        }, 2000);
+
+        // Show toast notification
+        showToast('Failed to copy to clipboard', 'error');
+    }
 }
 
 function parseAndFormatContent(content) {

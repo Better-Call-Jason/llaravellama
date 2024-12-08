@@ -734,6 +734,10 @@ pre {
     color: var(--body-color) !important;
 }
 
+.copy-error {
+    color: #dc3545 !important;
+}
+
 
 @media screen and (max-width: 991.98px) {
 
