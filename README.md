@@ -1,18 +1,18 @@
-# LlaravaLlama: Your Private AI Chat Suite
+# LlaraveLlama: Your Private AI Chat Suite
 
-Welcome to LlaravaLlama - where Laravel and Ollama come together like peanut butter and chocolate to create the most versatile private chat suite available. Built for privacy enthusiasts and AI aficionados alike, LlaravaLlama brings enterprise-level features to your local machine.
+Welcome to LlaraveLlama - where Laravel and Ollama come together like peanut butter and chocolate to create the most versatile private chat suite available. Built for privacy enthusiasts and AI aficionados alike, LlaraveLlama brings enterprise-level features to your local machine.
 
 ## 📸 Preview
 
 <div align="center">
-  <img src="public/images/docs/preview.gif" alt="LlaravaLlama in action" width="800">
+  <img src="public/images/docs/preview.gif" alt="LlaraveLlama in action" width="800">
   <br />
-  <em>LlaravaLlama in action - showcasing features and themes</em>
+  <em>LlaraveLlama in action - showcasing features, themes and debug mode</em>
 </div>
 
-## ✨ Why LlaravaLlama?
+## ✨ Why LlaraveLlama?
 
-LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful local AI models to create a completely private, self-hosted chat experience. From its eye-pleasing daylight theme to its soothing moonlight mode, every detail is crafted for your comfort and productivity.
+LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful local AI models to create a completely private, self-hosted chat experience. From its eye-pleasing daylight theme to its soothing moonlight mode, every detail is crafted for your comfort and productivity.
 
 ## 🚀 Key Features
 
@@ -30,7 +30,18 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **Service Debugging**: Easily toggle comprehensive service-level debugging for troubleshooting
 
 ## 🎮 Live Demo
-[Try LlaravaLlama Now](https://llaravallama.com)
+
+[Try LlaraveLlama Now](https://llaravellama.com)
+
+### Demo Environment Notes:
+- Hosted on a basic Linode server - performance may vary with concurrent users
+- All conversations are public and visible to other demo users
+- Automatic cleanup every 10 minutes:
+    - Assistants are reset
+    - Conversations are cleared
+- Perfect for a quick test drive before your local installation
+
+The demo is intended as a preview of LlaraveLlama's features. For the best experience, we recommend running your own private instance.
 
 ## 🛠 Technical Requirements
 
@@ -44,7 +55,7 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 
 ## 📱 Mobile Access Setup
 
-1. Deploy LlaravaLlama on your:
+1. Deploy LlaraveLlama on your:
     - Local PC
     - Cloud server (e.g., Linode)
 2. Configure port forwarding
@@ -57,6 +68,14 @@ LlaravaLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 # Clone the repository
 git clone https://github.com/Better-Call-Jason/LlaraveLlama.git
 
+# Install Ollama (Linux)
+curl https://ollama.ai/install.sh | sh
+# Start Ollama service
+systemctl start ollama
+
+# Install at least one model
+ollama pull llama3.2:3b
+
 # Install dependencies
 composer install
 npm install
@@ -65,56 +84,63 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# Start the services
-php artisan serve --host=0.0.0.0 --port=8000
-npm run dev
-ollama serve
+# Build for production
+npm run prod
 
-#open port in firewall if needed
+# Start the services
+nohup php artisan serve --host=0.0.0.0 --port=8000 > storage/logs/artisan.log 2>&1 &
+ollama serve # if you get an error it's already running
+
+# Open port in firewall if needed
 sudo ufw allow 8000
 ```
 
-## 🔍 Debugging Features
-
-LlaravaLlama comes with comprehensive debugging capabilities out of the box:
-
-### Mobile Debug Mode
-The app includes a full debug mode that works seamlessly on mobile devices. After completing the installation steps above, debugging is automatically available on your mobile device - no additional setup required.
-
-[Previous sections remain the same until the Debugging Features section]
+### Your private LlaraveLlama pp will be available at: 
+  - http://localhost:8000
+  - and at http://your_ip_address:8000/ for use on other locally connected devices
 
 ## 🔍 Debugging Features
 
-LlaravaLlama comes with comprehensive debugging capabilities that can be easily enabled in your development environment:
+LlaraveLlama comes with comprehensive debugging capabilities out of the box:
+
+## 🔍 Debugging Features
+
+LlaraveLlama includes comprehensive debugging capabilities that can be easily controlled through your environment settings.
 
 ### Enabling Debug Mode
 
-Debug mode can be toggled in your `resources/views/app.blade.php`:
+Debug mode is controlled through your `.env` file:
 
-1. Set the debug panel flag:
-```javascript
-window.DEBUG_PANEL = true; // Enable debug mode
+```env
+APP_DEBUG=true  # Enable debugging features
+APP_DEBUG=false # Disable debugging features (production setting)
 ```
 
-2. Enable the debug partial:
-```php
-@include('chat.partials.debug', ['debugEnabled' => true])
+This setting automatically controls:
+- The debug panel visibility
+- Service operation logging
+- System interaction details
+- API call monitoring
+
+No code changes are required - simply update your .env file and clear the configuration:
+```bash
+php artisan config:clear
+php artisan cache:clear
 ```
 
-This will enable debugging features across all environments, including mobile devices. The debug panel provides detailed insights into:
-- Application state
-- Service operations
-- API calls
-- System interactions
+### Production Environments
 
-When disabled (default production settings):
-```javascript
-window.DEBUG_PANEL = false;
-```
-```php
-@include('chat.partials.debug', ['debugEnabled' => false])
-```
-This provides detailed insights into service operations, API calls, and system interactions.
+For production deployments:
+1. Ensure APP_DEBUG is set to false in your .env file
+2. Clear all configuration caches
+3. Verify debug panel is not visible
+4. Confirm no sensitive information is exposed
+
+This configuration provides optimal security and performance while maintaining the ability to quickly enable debugging when needed.
+
+### Mobile Debugging
+
+The debug panel is fully responsive and works seamlessly on mobile devices when enabled through the .env file - no additional configuration required.
 
 ## 👨‍💻 About the Author
 
@@ -122,7 +148,7 @@ Created by a passionate PHP/JS full-stack developer who believes in the democrat
 
 ## 🌟 The Vision
 
-LlaravaLlama was born from the amazing reality that today's LLM technology can run efficiently on consumer hardware. As these models become more powerful and accessible, tools like LlaravaLlama make it possible for everyone to harness their potential while maintaining complete privacy and control.
+LlaraveLlama was born from the amazing reality that today's LLM technology can run efficiently on consumer hardware. As these models become more powerful and accessible, tools like LlaraveLlama make it possible for everyone to harness their potential while maintaining complete privacy and control.
 
 ## 🤝 Contributing
 
@@ -130,4 +156,4 @@ Your contributions are welcome! Whether it's bug fixes, feature additions, or do
 
 ## 📜 License
 
-LlaravaLlama is open-source software licensed under the MIT license.
+LlaraveLlama is open-source software licensed under the MIT license.

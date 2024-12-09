@@ -737,6 +737,9 @@ pre {
 .copy-error {
     color: #dc3545 !important;
 }
+.mobile-nav-toggle {
+    display: none !important;
+}
 
 
 @media screen and (max-width: 991.98px) {
@@ -755,6 +758,9 @@ pre {
         .sidebar-column {
             display: none;
         }
+    .mobile-nav-toggle {
+        display: block !important;
+    }
 
         /* Header sizing */
         .header-row {

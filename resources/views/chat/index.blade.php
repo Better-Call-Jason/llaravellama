@@ -34,9 +34,7 @@
 
                 <!-- Logo/Title -->
                 <h2 class="mb-0 brand-name align-items-center">
-                    <span class="brand-l">L</span>larava<span class="brand-l">L</span>lama
-                    <span class="ms-2">
-                        <i class="fas fa-shield-halved brand-l"></i>
+                    <span class="brand-l">L</span>larave<span class="brand-l">L</span>lama<i class="fas fa-shield-halved brand-l"></i>
                     </span>
                 </h2>
                 <button class="btn btn-link ms-auto theme-toggle" type="button" title="Toggle theme">
@@ -137,6 +135,6 @@
 
 @endsection
 
-@section('scripts')
-    @vite(['resources/js/chat.js'])
-@endsection
+{{--@section('scripts')--}}
+{{--    @vite(['resources/js/chat.js'])--}}
+{{--@endsection--}}

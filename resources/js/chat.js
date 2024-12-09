@@ -39,6 +39,7 @@ function dismissMobileKeyboard() {
 //assistants ops
 window.createAssistant = function() {
     closeOffcanvas();
+    stopGeneration();
     $('#assistant-id').val('');
     $('#assistant-name').val('');
     $('#assistant-prompt').val('');
@@ -251,7 +252,7 @@ function renderAssistants(data, containers) {
 
             div.on('click', function() {
                 const assistantId = $(this).data('id');
-
+                stopGeneration();
                 if (window.selectedAssistantId === assistantId) {
                     window.selectedAssistantId = null;
                     $(this).removeClass('active');
@@ -282,6 +283,7 @@ window.startNewConversation = function() {
     $('#chat-messages').empty();
     loadConversations();
     closeOffcanvas();
+    stopGeneration();
     $('#message-input').focus();
 };
 
@@ -410,6 +412,7 @@ window.stopGeneration = function() {
         $('#stopBtn').hide();
         showToast('Generation stopped');
     }
+    return;
 };
 
 function loadConversations() {
@@ -560,6 +563,8 @@ function renderConversations(conversations, containers) {
 
         div.on('click', function(e) {
             if (!$(this).find('.conversation-name').attr('contenteditable')) {
+                stopGeneration();
+                closeOffcanvas();
                 loadConversation(conv.id);
             }
         });
@@ -707,26 +712,6 @@ function showTypingIndicator() {
     $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
     return indicator;
 }
-
-// async function copyToClipboard(text, buttonElement) {
-//         try {
-//             await navigator.clipboard.writeText(text);
-//
-//             // Visual feedback
-//             const $button = $(buttonElement);
-//             const originalHtml = $button.html();
-//
-//             $button.html('<i class="fas fa-check"></i>');
-//             $button.addClass('copied');
-//
-//             setTimeout(() => {
-//                 $button.html(originalHtml);
-//                 $button.removeClass('copied');
-//             }, 2000);
-//         } catch (err) {
-//             console.error('Failed to copy:', err);
-//         }
-// }
 
 async function copyToClipboard(text, buttonElement) {
     try {
@@ -953,6 +938,7 @@ $('.model-selector').change(function() {
 
     // Keep all selectors in sync
     allSelectors.val(model);
+    stopGeneration();
 
     $.post('/model/switch', { model }, function(response) {
         if (response.success) {
@@ -972,6 +958,7 @@ $('.assistant-selector').change(function() {
     // Keep all selectors in sync
     allSelectors.val(assistantId);
     closeOffcanvas();
+    stopGeneration();
     $('#message-input').focus();
 });
 
