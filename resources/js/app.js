@@ -3,6 +3,7 @@ const DEBUG = window.DEBUG_PANEL;
 let currentConversationId = null;
 let currentAjaxRequest = null;
 
+
 //DEBUG
 function debugLog(message) {
     if (!DEBUG) return;
@@ -388,6 +389,8 @@ window.sendMessage = function()
         }
     });
 };
+
+
 
 window.deleteConversation = function(id) {
     $.ajax({

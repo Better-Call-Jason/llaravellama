@@ -5,22 +5,25 @@ namespace App\Services;
 class OllamaService
 {
     protected $modelService;
-    protected $maxRetries = 3;
-    protected $retryDelay = 2; // seconds
+
+
+    protected $maxRetries = 5;
+    protected $retryDelay = 3; // seconds
+    protected $streamTimeout = 300; // seconds
 
     // Default timeouts based on model size
     protected $modelTimeouts = [
         'default' => [
-            'connection' => 5,    // Connection timeout in seconds
-            'response' => 30      // Response timeout in seconds
+            'connection' => 60,
+            'response' => 180
         ],
         'large' => [
-            'connection' => 10,
-            'response' => 120     // 2 minutes for larger models
+            'connection' => 90,
+            'response' => 300
         ],
         'xlarge' => [
-            'connection' => 15,
-            'response' => 300     // 5 minutes for very large models
+            'connection' => 120,
+            'response' => 600
         ]
     ];
 
@@ -49,12 +52,33 @@ class OllamaService
         return $this->modelTimeouts['default'];
     }
 
-    protected function makeRequest($prompt, $model)
-    {
+//    protected function makeRequest($prompt, $model)
+//    {
+//        $ch = curl_init('http://localhost:11434/api/generate');
+//        if ($ch === false) {
+//            throw new \Exception("Failed to initialize cURL");
+//        }
+//
+//        $timeouts = $this->getTimeoutsForModel($model);
+//
+//        curl_setopt_array($ch, [
+//            CURLOPT_POST => 1,
+//            CURLOPT_POSTFIELDS => json_encode([
+//                'model' => $model,
+//                'prompt' => $prompt,
+//                'stream' => true
+//            ]),
+//            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+//            CURLOPT_TIMEOUT => $timeouts['response'],
+//            CURLOPT_CONNECTTIMEOUT => $timeouts['connection'],
+//            CURLOPT_TCP_KEEPALIVE => 1
+//        ]);
+//
+//        return $ch;
+//    }
+
+    protected function makeRequest($prompt, $model) {
         $ch = curl_init('http://localhost:11434/api/generate');
-        if ($ch === false) {
-            throw new \Exception("Failed to initialize cURL");
-        }
 
         $timeouts = $this->getTimeoutsForModel($model);
 
@@ -66,13 +90,15 @@ class OllamaService
                 'stream' => true
             ]),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => $timeouts['response'],
-            CURLOPT_CONNECTTIMEOUT => $timeouts['connection'],
-            CURLOPT_TCP_KEEPALIVE => 1
+            CURLOPT_TIMEOUT => $this->streamTimeout,
+            CURLOPT_TCP_KEEPALIVE => 1,
+            CURLOPT_TCP_KEEPIDLE => 180,
+            CURLOPT_TCP_KEEPINTVL => 40,
         ]);
 
         return $ch;
     }
+
 
     protected function loadAndCheckModel($model)
     {
@@ -110,24 +136,47 @@ class OllamaService
         return false;
     }
 
-    public function generateResponse($prompt, $model)
-    {
+    public function generateResponse($prompt, $model) {
         $attempt = 0;
+        $lastError = null;
+
         while ($attempt < $this->maxRetries) {
             try {
-                return $this->makeRequest($prompt, $model);
+                $ch = $this->makeRequest($prompt, $model);
+                return $ch;
             } catch (\Exception $e) {
                 $attempt++;
-                \Log::error("Ollama generation attempt $attempt failed: " . $e->getMessage());
+                $lastError = $e;
+                \Log::warning("Stream attempt $attempt failed: " . $e->getMessage());
 
                 if ($attempt < $this->maxRetries) {
+                    sleep($this->retryDelay);
                     $this->recoverModel($model);
-                } else {
-                    throw new \Exception("Failed to generate response after $attempt attempts");
                 }
             }
         }
+
+        throw new \Exception("Failed after {$this->maxRetries} attempts. Last error: " . $lastError->getMessage());
     }
+//
+//    public function generateResponse($prompt, $model)
+//    {
+//        $attempt = 0;
+//        while ($attempt < $this->maxRetries) {
+//            try {
+//                return $this->makeRequest($prompt, $model);
+//            } catch (\Exception $e) {
+//                $attempt++;
+//                \Log::error("Ollama generation attempt $attempt failed: " . $e->getMessage());
+//
+//                if ($attempt < $this->maxRetries) {
+//                    $this->recoverModel($model);
+//                } else {
+//                    throw new \Exception("Failed to generate response after $attempt attempts");
+//                }
+//            }
+//        }
+//    }
 
     protected function recoverModel($model)
     {
