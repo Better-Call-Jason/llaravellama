@@ -87,17 +87,16 @@ php artisan key:generate
 # Build for production
 npm run prod
 
-# Start the services
+# Start the server
 nohup php artisan serve --host=0.0.0.0 --port=8000 > storage/logs/artisan.log 2>&1 &
-ollama serve # if you get an error it's already running
 
 # Open port in firewall if needed
 sudo ufw allow 8000
 ```
 
-### Your private LlaraveLlama pp will be available at: 
-  - http://localhost:8000
-  - and at http://your_ip_address:8000/ for use on other locally connected devices
+### Your private LlaraveLlama app will be available at: 
+  - `http://localhost:8000`
+  - `http://your_computer_ip_address:8000/` for use on other locally connected devices
 
 ## 🔍 Debugging Features
 
