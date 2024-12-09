@@ -5,9 +5,11 @@ Welcome to LlaraveLlama - where Laravel and Ollama come together like peanut but
 ## 📸 Preview
 
 <div align="center">
-  <img src="public/images/docs/preview.gif" alt="LlaraveLlama in action" width="800">
-  <br />
-  <em>LlaraveLlama in action - showcasing features, themes and debug mode</em>
+    <img src="public/images/docs/preview.gif" alt="LlaraveLlama in action" width="800">
+    <br />
+   <em>LlaraveLlama in action - showcasing features, themes and debug mode</em>
+   <br>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
 </div>
 
 ## ✨ Why LlaraveLlama?
@@ -36,9 +38,7 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 ### Demo Environment Notes:
 - Hosted on a basic Linode server - performance may vary with concurrent users
 - All conversations are public and visible to other demo users
-- Automatic cleanup every 10 minutes:
-    - Assistants are reset
-    - Conversations are cleared
+- Assistants and Conversations may be deleted at any time.
 - Perfect for a quick test drive before your local installation
 
 The demo is intended as a preview of LlaraveLlama's features. For the best experience, we recommend running your own private instance.
@@ -151,4 +151,4 @@ Your contributions are welcome! Whether it's bug fixes, feature additions, or do
 
 ## 📜 License
 
-LlaraveLlama is open-source software licensed under the MIT license.
+LlaraveLlama is open-source software licensed under the [MIT license](LICENSE). See the [LICENSE](LICENSE) file for the full license text.
