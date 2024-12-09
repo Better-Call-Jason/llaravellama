@@ -100,10 +100,6 @@ sudo ufw allow 8000
 
 ## 🔍 Debugging Features
 
-LlaraveLlama comes with comprehensive debugging capabilities out of the box:
-
-## 🔍 Debugging Features
-
 LlaraveLlama includes comprehensive debugging capabilities that can be easily controlled through your environment settings.
 
 ### Enabling Debug Mode
