@@ -2,11 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use App\Services\ConversationService;
 use App\Services\AssistantService;
+use App\Services\ConversationService;
 use App\Services\ModelService;
-use App\Services\JsonStorageService;
+use Illuminate\Support\ServiceProvider;
 
 class DataServiceProvider extends ServiceProvider
 {
@@ -25,6 +24,10 @@ class DataServiceProvider extends ServiceProvider
 
         $this->app->singleton(ModelService::class, function ($app) {
             return new ModelService();
+        });
+
+        $this->app->singleton(OllamaService::class, function ($app) {
+            return new OllamaService($app->make(ModelService::class));
         });
     }
 

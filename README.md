@@ -30,7 +30,7 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **Lightweight**: Runs smoothly on modest hardware - from cloud VPS to your old laptop
 - **Full Debug Mode**: Out-of-the-box debugging support for mobile testing and development
 - **Service Debugging**: Easily toggle comprehensive service-level debugging for troubleshooting
-
+- **Model Health Recovery**: Automatic model health monitoring and recovery system that handles Ollama instabilities with automated repair and restart capabilities
 ## 🎮 Live Demo
 
 [Try LlaraveLlama Now](https://llaravellama.com)

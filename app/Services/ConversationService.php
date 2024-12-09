@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Providers\JsonStorageService;
+
 class ConversationService extends JsonStorageService
 {
     public function __construct()
@@ -12,27 +14,27 @@ class ConversationService extends JsonStorageService
     public function getAll()
     {
         $conversations = parent::getAll();
-        
+
         // Sort conversations by the timestamp of their latest message
         usort($conversations, function($a, $b) {
             $aTimestamp = $this->getLatestTimestamp($a);
             $bTimestamp = $this->getLatestTimestamp($b);
             return $bTimestamp - $aTimestamp; // Descending order (newest first)
         });
-        
+
         return $conversations;
     }
-    
+
     private function getLatestTimestamp($conversation)
     {
         if (empty($conversation['messages'])) {
             return $conversation['id'] ?? 0; // Fallback to conversation ID if no messages
         }
-        
+
         $lastMessage = end($conversation['messages']);
         return $lastMessage['timestamp'] ?? $conversation['id'];
     }
-    
+
     public function addMessage($conversationId, $message)
     {
         $conversation = $this->get($conversationId) ?? [
@@ -40,34 +42,34 @@ class ConversationService extends JsonStorageService
             'title' => "Conversation $conversationId",
             'messages' => []
         ];
-        
+
         $conversation['messages'][] = [
             'timestamp' => time(),
             'prompt' => $message
         ];
-        
+
         return $this->save($conversationId, $conversation);
     }
-    
+
     public function updateResponse($conversationId, $response)
     {
         $conversation = $this->get($conversationId);
         if (!$conversation || empty($conversation['messages'])) {
             return false;
         }
-        
+
         $lastIndex = count($conversation['messages']) - 1;
         $conversation['messages'][$lastIndex]['response'] = $response;
         return $this->save($conversationId, $conversation);
     }
-    
+
     public function getContext($conversationId, $limit = 5)
     {
         $conversation = $this->get($conversationId);
         if (!$conversation) {
             return '';
         }
-        
+
         $messages = array_slice($conversation['messages'], -$limit);
         $context = '';
         foreach ($messages as $msg) {
@@ -87,17 +89,17 @@ class ConversationService extends JsonStorageService
             if (stripos($conversation['title'], $query) !== false) {
                 return true;
             }
-            
+
             // Search in messages
             if (isset($conversation['messages']) && is_array($conversation['messages'])) {
                 foreach ($conversation['messages'] as $message) {
-                    if (stripos($message['prompt'] ?? '', $query) !== false || 
+                    if (stripos($message['prompt'] ?? '', $query) !== false ||
                         stripos($message['response'] ?? '', $query) !== false) {
                         return true;
                     }
                 }
             }
-            
+
             return false;
         });
     }

@@ -363,7 +363,9 @@ window.sendMessage = function()
             if (loadingIndicator) {
                 loadingIndicator.remove();
             }
-            appendMessage('An error occurred while processing your request.', false);
+            $('#stopBtn').hide();
+
+            showToast('Error With AI Model. Please Try Again', 'error');
         }
     });
 };

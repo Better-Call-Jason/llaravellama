@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Providers\JsonStorageService;
+
 class AssistantService extends JsonStorageService
 {
     public function __construct()
@@ -12,17 +14,17 @@ class AssistantService extends JsonStorageService
     public function getAll()
     {
         $assistants = parent::getAll();
-        
+
         // Sort assistants by created_at timestamp
         usort($assistants, function($a, $b) {
             $aTimestamp = $a['created_at'] ?? 0;
             $bTimestamp = $b['created_at'] ?? 0;
             return $bTimestamp - $aTimestamp; // Descending order (newest first)
         });
-        
+
         return $assistants;
     }
-    
+
     public function create($name, $prompt)
     {
         // Check for duplicate names
@@ -32,7 +34,7 @@ class AssistantService extends JsonStorageService
                 throw new \Exception('An assistant with this name already exists');
             }
         }
-        
+
         $id = time();
         $assistant = [
             'id' => $id,
@@ -40,11 +42,11 @@ class AssistantService extends JsonStorageService
             'prompt' => $prompt,
             'created_at' => time()
         ];
-        
+
         $this->save($id, $assistant);
         return $assistant;
     }
-    
+
     public function update($id, $name, $prompt)
     {
         // Check for duplicate names, excluding current assistant
@@ -54,12 +56,12 @@ class AssistantService extends JsonStorageService
                 throw new \Exception('An assistant with this name already exists');
             }
         }
-    
+
         $assistant = $this->get($id);
         if (!$assistant) {
             return false;
         }
-    
+
         $assistant['name'] = $name;
         $assistant['prompt'] = $prompt;
         return $this->save($id, $assistant);
@@ -69,7 +71,7 @@ class AssistantService extends JsonStorageService
     {
         $assistants = $this->getAll();
         return array_filter($assistants, function($assistant) use ($query) {
-            return stripos($assistant['name'], $query) !== false || 
+            return stripos($assistant['name'], $query) !== false ||
                 stripos($assistant['prompt'], $query) !== false;
         });
     }

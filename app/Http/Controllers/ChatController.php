@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\ConversationService;
 use App\Services\AssistantService;
 use App\Services\ModelService;
+use App\Services\OllamaService;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
@@ -12,17 +13,20 @@ class ChatController extends Controller
     protected $conversations;
     protected $assistants;
     protected $models;
-    
+
     public function __construct(
         ConversationService $conversations,
         AssistantService $assistants,
-        ModelService $models
+        ModelService $models,
+        OllamaService $ollama
+
     ) {
         $this->conversations = $conversations;
         $this->assistants = $assistants;
         $this->models = $models;
+        $this->ollama = $ollama;
     }
-    
+
     public function index()
     {
         return view('chat.index', [
@@ -32,19 +36,136 @@ class ChatController extends Controller
             'currentModel' => $this->models->getCurrentModel()
         ]);
     }
-    
+
+//    public function sendMessage(Request $request)
+//    {
+//        $conversationId = $request->input('conversationId', time());
+//        $message = $request->input('message');
+//        $assistantId = $request->input('assistantId');
+//
+//        // Save the initial message
+//        $this->conversations->addMessage($conversationId, $message);
+//
+//        // Get conversation context
+//        $context = $this->conversations->getContext($conversationId);
+//
+//        // Add assistant context if selected
+//        $fullPrompt = '';
+//        if ($assistantId) {
+//            $assistant = $this->assistants->get($assistantId);
+//            if ($assistant) {
+//                // Prepend assistant's prompt as system instruction
+//                $fullPrompt = "System: {$assistant['prompt']}\n\n";
+//            }
+//        }
+//
+//        // Add the conversation context and current message
+//        $fullPrompt .= $context . "Human: $message\nAssistant:";
+//
+//        // Get current model
+//        $currentModel = $this->models->getCurrentModel();
+//
+//        // Stream response
+//        return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {
+//            $ch = curl_init('http://localhost:11434/api/generate');
+//
+//            // Collect the full response
+//            $fullResponse = '';
+//
+//            curl_setopt($ch, CURLOPT_POST, 1);
+//            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+//                'model' => $currentModel,
+//                'prompt' => $fullPrompt,
+//                'stream' => true
+//            ]));
+//
+//            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+//
+//            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $conversationId) {
+//                if ($jsonData = json_decode($data, true)) {
+//                    if (isset($jsonData['response'])) {
+//                        $fullResponse .= $jsonData['response'];
+//                        $this->conversations->updateResponse($conversationId, $fullResponse);
+//                        echo $data;
+//                        flush();
+//                        ob_flush();
+//                    }
+//                }
+//                return strlen($data);
+//            });
+//
+//            curl_exec($ch);
+//            curl_close($ch);
+//        }, 200, [
+//            'Cache-Control' => 'no-cache',
+//            'X-Accel-Buffering' => 'no',
+//            'Content-Type' => 'text/event-stream',
+//        ]);
+//    }
+
     public function sendMessage(Request $request)
     {
         $conversationId = $request->input('conversationId', time());
         $message = $request->input('message');
         $assistantId = $request->input('assistantId');
-        
+
         // Save the initial message
         $this->conversations->addMessage($conversationId, $message);
-        
+
+        // Prepare full prompt
+        $fullPrompt = $this->preparePrompt($conversationId, $message, $assistantId);
+
+        // Get current model
+        $currentModel = $this->models->getCurrentModel();
+
+        try {
+            return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {
+                $ch = $this->ollama->generateResponse($fullPrompt, $currentModel);
+
+                // Collect the full response
+                $fullResponse = '';
+
+                curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $conversationId) {
+                    if ($jsonData = json_decode($data, true)) {
+                        if (isset($jsonData['response'])) {
+                            $fullResponse .= $jsonData['response'];
+                            $this->conversations->updateResponse($conversationId, $fullResponse);
+                            echo $data;
+                            flush();
+                            ob_flush();
+                        }
+                    }
+                    return strlen($data);
+                });
+
+                $success = curl_exec($ch);
+                $error = curl_error($ch);
+                curl_close($ch);
+
+                if (!$success) {
+                    throw new \Exception("Failed to generate response: $error");
+                }
+
+            }, 200, [
+                'Cache-Control' => 'no-cache',
+                'X-Accel-Buffering' => 'no',
+                'Content-Type' => 'text/event-stream',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error generating response: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Failed to generate response. Please try again.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    protected function preparePrompt($conversationId, $message, $assistantId)
+    {
         // Get conversation context
         $context = $this->conversations->getContext($conversationId);
-        
+
         // Add assistant context if selected
         $fullPrompt = '';
         if ($assistantId) {
@@ -54,74 +175,35 @@ class ChatController extends Controller
                 $fullPrompt = "System: {$assistant['prompt']}\n\n";
             }
         }
-        
+
         // Add the conversation context and current message
         $fullPrompt .= $context . "Human: $message\nAssistant:";
-        
-        // Get current model
-        $currentModel = $this->models->getCurrentModel();
-        
-        // Stream response
-        return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {
-            $ch = curl_init('http://localhost:11434/api/generate');
-            
-            // Collect the full response
-            $fullResponse = '';
-            
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-                'model' => $currentModel,
-                'prompt' => $fullPrompt,
-                'stream' => true
-            ]));
-            
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            
-            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $conversationId) {
-                if ($jsonData = json_decode($data, true)) {
-                    if (isset($jsonData['response'])) {
-                        $fullResponse .= $jsonData['response'];
-                        $this->conversations->updateResponse($conversationId, $fullResponse);
-                        echo $data;
-                        flush();
-                        ob_flush();
-                    }
-                }
-                return strlen($data);
-            });
-            
-            curl_exec($ch);
-            curl_close($ch);
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'X-Accel-Buffering' => 'no',
-            'Content-Type' => 'text/event-stream',
-        ]);
+
+        return $fullPrompt;
     }
-    
     // Conversation Management
     public function getConversations()
     {
         return response()->json(['conversations' => $this->conversations->getAll()]);
     }
-    
+
     public function loadConversation(Request $request)
     {
         try {
             $id = $request->input('id');
             $conversation = $this->conversations->get($id);
-            
+
             if (!$conversation) {
                 return response()->json(['error' => 'Conversation not found'], 404);
             }
-            
+
             return response()->json($conversation);
         } catch (\Exception $e) {
             \Log::error('Error loading conversation: ' . $e->getMessage());
             return response()->json(['error' => 'Error loading conversation'], 500);
         }
     }
-    
+
     public function updateTitle(Request $request)
     {
         $conversation = $this->conversations->get($request->id);
@@ -132,7 +214,7 @@ class ChatController extends Controller
         }
         return response()->json(['success' => false]);
     }
-    
+
     public function deleteConversation($id)
     {
         try {
@@ -149,7 +231,7 @@ class ChatController extends Controller
         $success = $this->models->switchModel($request->model);
         return response()->json(['success' => $success]);
     }
-    
+
     // Assistant Management
     public function updateAssistant(Request $request)
     {
@@ -161,11 +243,11 @@ class ChatController extends Controller
                     'error' => 'Name and prompt are required'
                 ], 422);
             }
-    
+
             $id = $request->input('id');
             $name = $request->input('name');
             $prompt = $request->input('prompt');
-    
+
             // Check for duplicate names
             $existingAssistants = $this->assistants->getAll();
             foreach ($existingAssistants as $existing) {
@@ -176,7 +258,7 @@ class ChatController extends Controller
                     ], 422);
                 }
             }
-    
+
             // Get existing assistant
             $assistant = $this->assistants->get($id);
             if (!$assistant) {
@@ -185,12 +267,12 @@ class ChatController extends Controller
                     'error' => 'Assistant not found'
                 ], 404);
             }
-    
+
             // Update assistant
             $success = $this->assistants->update($id, $name, $prompt);
 
             $updatedAssistant = $this->assistants->get($id);
-            
+
             return response()->json([
                 'success' => $success,
                 'assistant' => $updatedAssistant
@@ -203,7 +285,7 @@ class ChatController extends Controller
             ], 500);
         }
     }
-    
+
     public function createAssistant(Request $request)
     {
         try {
@@ -214,10 +296,10 @@ class ChatController extends Controller
                     'error' => 'Name and prompt are required'
                 ], 422);
             }
-    
+
             $name = $request->input('name');
             $prompt = $request->input('prompt');
-    
+
             // Check for duplicate names
             $existingAssistants = $this->assistants->getAll();
             foreach ($existingAssistants as $existing) {
@@ -228,9 +310,9 @@ class ChatController extends Controller
                     ], 422);
                 }
             }
-    
+
             $assistant = $this->assistants->create($name, $prompt);
-            
+
             return response()->json([
                 'success' => true,
                 'assistant' => $assistant
@@ -243,7 +325,7 @@ class ChatController extends Controller
             ], 500);
         }
     }
-    
+
     public function deleteAssistant($id)
     {
         return response()->json([
@@ -262,7 +344,7 @@ class ChatController extends Controller
         try {
             $query = $request->input('query');
             $results = $this->conversations->search($query);
-            
+
             return response()->json([
                 'success' => true,
                 'conversations' => $results
@@ -281,7 +363,7 @@ class ChatController extends Controller
         try {
             $query = $request->input('query');
             $results = $this->assistants->search($query);
-            
+
             return response()->json([
                 'success' => true,
                 'assistants' => $results
