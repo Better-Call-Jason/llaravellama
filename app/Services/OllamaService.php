@@ -8,9 +8,106 @@ class OllamaService
     protected $maxRetries = 3;
     protected $retryDelay = 2; // seconds
 
+    // Default timeouts based on model size
+    protected $modelTimeouts = [
+        'default' => [
+            'connection' => 5,    // Connection timeout in seconds
+            'response' => 30      // Response timeout in seconds
+        ],
+        'large' => [
+            'connection' => 10,
+            'response' => 120     // 2 minutes for larger models
+        ],
+        'xlarge' => [
+            'connection' => 15,
+            'response' => 300     // 5 minutes for very large models
+        ]
+    ];
+
+    // Models that need extended timeouts
+    protected $largeModels = [
+        '13b',
+        '30b',
+        '34b',
+        '70b'
+    ];
+
     public function __construct(ModelService $modelService)
     {
         $this->modelService = $modelService;
+    }
+
+    protected function getTimeoutsForModel($model)
+    {
+        // Check model size by looking for common identifiers in the model name
+        foreach ($this->largeModels as $size) {
+            if (stripos($model, $size) !== false) {
+                return $size > '30b' ? $this->modelTimeouts['xlarge'] : $this->modelTimeouts['large'];
+            }
+        }
+
+        return $this->modelTimeouts['default'];
+    }
+
+    protected function makeRequest($prompt, $model)
+    {
+        $ch = curl_init('http://localhost:11434/api/generate');
+        if ($ch === false) {
+            throw new \Exception("Failed to initialize cURL");
+        }
+
+        $timeouts = $this->getTimeoutsForModel($model);
+
+        curl_setopt_array($ch, [
+            CURLOPT_POST => 1,
+            CURLOPT_POSTFIELDS => json_encode([
+                'model' => $model,
+                'prompt' => $prompt,
+                'stream' => true
+            ]),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => $timeouts['response'],
+            CURLOPT_CONNECTTIMEOUT => $timeouts['connection'],
+            CURLOPT_TCP_KEEPALIVE => 1
+        ]);
+
+        return $ch;
+    }
+
+    protected function loadAndCheckModel($model)
+    {
+        $timeouts = $this->getTimeoutsForModel($model);
+
+        $ch = curl_init('http://localhost:11434/api/generate');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => 1,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS => json_encode([
+                'model' => $model,
+                'prompt' => 'test', // Minimal prompt for health check
+                'stream' => false
+            ]),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => $timeouts['response'],
+            CURLOPT_CONNECTTIMEOUT => $timeouts['connection']
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            \Log::warning("Model health check failed with error: $error");
+            return false;
+        }
+
+        if ($httpCode === 200 && $response) {
+            $data = json_decode($response, true);
+            return isset($data['response']) && !empty($data['response']);
+        }
+
+        return false;
     }
 
     public function generateResponse($prompt, $model)
@@ -30,32 +127,6 @@ class OllamaService
                 }
             }
         }
-    }
-
-    protected function makeRequest($prompt, $model)
-    {
-        //for testing model failures -- not for production
-//        if ($model === 'llama3.2:latest') {
-//            throw new \Exception("Simulated model failure for testing");
-//        }
-        $ch = curl_init('http://localhost:11434/api/generate');
-        if ($ch === false) {
-            throw new \Exception("Failed to initialize cURL");
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => json_encode([
-                'model' => $model,
-                'prompt' => $prompt,
-                'stream' => true
-            ]),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 5
-        ]);
-
-        return $ch;
     }
 
     protected function recoverModel($model)
@@ -133,32 +204,4 @@ class OllamaService
         }
     }
 
-    protected function loadAndCheckModel($model)
-    {
-        // Try to load the model with a simple health check prompt
-        $ch = curl_init('http://localhost:11434/api/generate');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => 1,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POSTFIELDS => json_encode([
-                'model' => $model,
-                'prompt' => 'test', // Minimal prompt for health check
-                'stream' => false
-            ]),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 30
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        // Check if we got a successful response
-        if ($httpCode === 200 && $response) {
-            $data = json_decode($response, true);
-            return isset($data['response']) && !empty($data['response']);
-        }
-
-        return false;
-    }
 }

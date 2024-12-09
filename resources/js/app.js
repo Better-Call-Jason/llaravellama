@@ -329,6 +329,19 @@ window.sendMessage = function()
                     if (line.trim()) {
                         try {
                             const data = JSON.parse(line);
+
+                            // Check for error message in stream
+                            if (data.type === 'model_error' || (data.message && data.message.includes('Error'))) {
+                                // Handle the error
+                                showToast(data.details || 'Error With AI Model. Please Try Again', 'error');
+                                if (loadingIndicator) {
+                                    loadingIndicator.remove();
+                                }
+                                $('#stopBtn').hide();
+                                return;
+                            }
+
+                            // Normal response handling
                             if (data.response) {
                                 if (!responseDiv) {
                                     loadingIndicator.remove();
@@ -365,7 +378,13 @@ window.sendMessage = function()
             }
             $('#stopBtn').hide();
 
-            showToast('Error With AI Model. Please Try Again', 'error');
+            try {
+                const errorData = JSON.parse(xhr.responseText);
+                showToast(errorData.recovery_message || 'Error With AI Model. Please Try Again', 'error');
+
+            } catch (e) {
+                showToast('Error With AI Model. Please Try Again', 'error');
+            }
         }
     });
 };
