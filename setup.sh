@@ -108,7 +108,7 @@ setup_ollama() {
     fi
 
     # Test Ollama API endpoint
-    if ! curl -s --unix-socket /usr/local/lib/ollama/ollama.sock http://localhost/api/tags >/dev/null; then
+if ! curl -s http://localhost:11434/api/tags >/dev/null; then
         echo -e "${RED}Ollama API is not responding. Please check if the service is running correctly.${NC}"
         exit 1
     fi
@@ -184,7 +184,7 @@ else
 
     # Run all setup functions
     check_system_dependencies
-    run_as_user setup_nvm
+    setup_nvm
     setup_ollama
     pull_models
     setup_laravel
