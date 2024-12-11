@@ -22,12 +22,56 @@ run_as_user() {
     sudo -u "$ACTUAL_USER" "$@"
 }
 
-# Update the setup_ollama function to not need sudo prefix
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check and install system dependencies
+check_system_dependencies() {
+    echo -e "${YELLOW}Checking system dependencies...${NC}"
+
+    # Check for curl
+    if ! command_exists curl; then
+        echo -e "${YELLOW}Installing curl...${NC}"
+        apt-get update && apt-get install -y curl
+    fi
+
+    # Check for PHP and required extensions
+    if ! command_exists php; then
+        echo -e "${YELLOW}Installing PHP and required extensions...${NC}"
+        apt-get update
+        apt-get install -y php8.1 php8.1-curl php8.1-xml php8.1-mbstring php8.1-zip php8.1-common
+    fi
+
+    # Check for composer
+    if ! command_exists composer; then
+        echo -e "${YELLOW}Installing composer...${NC}"
+        curl -sS https://getcomposer.org/installer | php
+        mv composer.phar /usr/local/bin/composer
+    fi
+}
+
+# Function to install and configure NVM
+setup_nvm() {
+    echo -e "${YELLOW}Setting up NVM...${NC}"
+    if ! command_exists nvm; then
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+        export NVM_DIR="$HOME_DIR/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+        # Install and use Node.js LTS
+        run_as_user bash -c 'source $HOME/.nvm/nvm.sh && nvm install --lts && nvm use --lts'
+    fi
+}
+
+# Function to install and start Ollama
 setup_ollama() {
     echo -e "${YELLOW}Setting up Ollama...${NC}"
 
     # Check if Ollama is already installed
-    if ! command -v ollama >/dev/null 2>&1; then
+    if ! command_exists ollama; then
         echo -e "${YELLOW}Installing Ollama...${NC}"
         curl -fsSL https://ollama.ai/install.sh | sh
         if [ $? -ne 0 ]; then
@@ -46,7 +90,7 @@ setup_ollama() {
     sleep 2
 
     echo -e "${YELLOW}Starting Ollama service...${NC}"
-    if command -v systemctl >/dev/null 2>&1; then
+    if command_exists systemctl; then
         systemctl start ollama
         if ! systemctl is-active --quiet ollama; then
             echo -e "${RED}Failed to start Ollama via systemctl. Trying manual start...${NC}"
@@ -72,12 +116,29 @@ setup_ollama() {
     echo -e "${GREEN}Ollama setup completed successfully!${NC}"
 }
 
-# Update other functions to use run_as_user where needed
+# Function to pull Ollama models
+pull_models() {
+    echo -e "${YELLOW}Checking and pulling required models...${NC}"
+    declare -a models=("llama3.2:3b" "qwen2.5:3b" "gemma2:2b")
+
+    for model in "${models[@]}"; do
+        if ! ollama list | grep -q "$model"; then
+            echo -e "${YELLOW}Pulling $model...${NC}"
+            ollama pull "$model"
+        else
+            echo -e "${GREEN}Model $model already exists${NC}"
+        fi
+    done
+}
+
+# Function to setup the Laravel application
 setup_laravel() {
     echo -e "${YELLOW}Setting up Laravel application...${NC}"
 
     # Run composer and npm commands as the actual user
     run_as_user composer install
+
+    # Install Node.js dependencies
     run_as_user npm install
 
     # Setup environment if not exists
@@ -90,18 +151,38 @@ setup_laravel() {
     run_as_user npm run prod
 }
 
-# Main script logic remains similar but uses run_as_user where needed
+# Function to start the server
+start_server() {
+    echo -e "${YELLOW}Starting Laravel server...${NC}"
+
+    # Get local IP address
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+
+    # Kill any existing artisan serve processes
+    pkill -f "php artisan serve"
+
+    # Start the server as the actual user
+    run_as_user nohup php artisan serve --host=0.0.0.0 --port=8000 > storage/logs/artisan.log 2>&1 &
+
+    echo -e "${GREEN}Server started successfully!${NC}"
+    echo -e "${GREEN}You can access the application at:${NC}"
+    echo -e "${GREEN}Local: http://localhost:8000${NC}"
+    echo -e "${GREEN}Network: http://$LOCAL_IP:8000${NC}"
+}
+
+# Main script logic
 if [ "$1" == "--serve" ]; then
     # Serve mode
     if ! pgrep -x "ollama" >/dev/null; then
         echo -e "${RED}Ollama is not running. Starting Ollama...${NC}"
         setup_ollama
     fi
-    run_as_user php artisan serve --host=0.0.0.0 --port=8000
+    start_server
 else
     # Initial setup mode
     echo -e "${YELLOW}Starting LlaraveLlama initial setup...${NC}"
 
+    # Run all setup functions
     check_system_dependencies
     run_as_user setup_nvm
     setup_ollama
