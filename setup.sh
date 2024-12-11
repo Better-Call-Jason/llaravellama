@@ -52,23 +52,76 @@ setup_nvm() {
 }
 
 # Function to install and start Ollama
+#setup_ollama() {
+#    echo -e "${YELLOW}Setting up Ollama...${NC}"
+#    if ! command_exists ollama; then
+#        curl -fsSL https://ollama.ai/install.sh | sh
+#    fi
+#
+#    # Check if Ollama service is running
+#    if ! pgrep -x "ollama" >/dev/null; then
+#        echo -e "${YELLOW}Starting Ollama service...${NC}"
+#        if command_exists systemctl; then
+#            sudo systemctl start ollama
+#        else
+#            # Start Ollama in background if systemctl is not available
+#            ollama serve >/dev/null 2>&1 &
+#            sleep 5 # Wait for Ollama to start
+#        fi
+#    fi
+#}
+
 setup_ollama() {
     echo -e "${YELLOW}Setting up Ollama...${NC}"
-    if ! command_exists ollama; then
-        curl -fsSL https://ollama.ai/install.sh | sh
-    fi
 
-    # Check if Ollama service is running
-    if ! pgrep -x "ollama" >/dev/null; then
-        echo -e "${YELLOW}Starting Ollama service...${NC}"
-        if command_exists systemctl; then
-            sudo systemctl start ollama
-        else
-            # Start Ollama in background if systemctl is not available
-            ollama serve >/dev/null 2>&1 &
-            sleep 5 # Wait for Ollama to start
+    # Check if Ollama is already installed
+    if ! command_exists ollama; then
+        echo -e "${YELLOW}Installing Ollama...${NC}"
+        curl -fsSL https://ollama.ai/install.sh | sh
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Failed to install Ollama. Please check your internet connection and try again.${NC}"
+            exit 1
         fi
     fi
+
+    # Ensure Ollama service directory exists
+    sudo mkdir -p /usr/local/lib/ollama
+    sudo chmod 755 /usr/local/lib/ollama
+
+    # Stop any existing Ollama processes
+    sudo pkill ollama 2>/dev/null
+
+    # Wait for processes to fully stop
+    sleep 2
+
+    # Start Ollama with proper error handling
+    echo -e "${YELLOW}Starting Ollama service...${NC}"
+    if command_exists systemctl; then
+        # For systems using systemd
+        sudo systemctl start ollama
+        if ! systemctl is-active --quiet ollama; then
+            echo -e "${RED}Failed to start Ollama via systemctl. Trying manual start...${NC}"
+            sudo ollama serve >/dev/null 2>&1 &
+        fi
+    else
+        # For systems not using systemd
+        sudo ollama serve >/dev/null 2>&1 &
+    fi
+
+    # Verify Ollama is running
+    sleep 5  # Give Ollama time to start
+    if ! pgrep -x "ollama" >/dev/null; then
+        echo -e "${RED}Failed to start Ollama. Please check logs at /var/log/ollama.log${NC}"
+        exit 1
+    fi
+
+    # Test Ollama API endpoint
+    if ! curl -s --unix-socket /usr/local/lib/ollama/ollama.sock http://localhost/api/tags >/dev/null; then
+        echo -e "${RED}Ollama API is not responding. Please check if the service is running correctly.${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}Ollama setup completed successfully!${NC}"
 }
 
 # Function to pull Ollama models
