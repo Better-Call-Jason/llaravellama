@@ -45,16 +45,33 @@ class ChatController extends Controller
             $message = $request->input('message');
             $assistantId = $request->input('assistantId');
 
+            // // For new conversations with an assistant, set up the initial prompt
+            // $conversation = $this->conversations->get($conversationId);
+            // if (!$conversation && $assistantId) {
+            //     $assistant = $this->assistants->get($assistantId);
+            //     if ($assistant) {
+            //         // Add the assistant's prompt as the first message
+            //         $this->conversations->addMessage($conversationId, $assistant['prompt']);
+            //         // Add the acknowledgment response
+            //         $this->conversations->updateResponse($conversationId,
+            //             "Thank you for explaining how I should respond to your prompt. I will follow your instructions precisely. I am ready to begin.");
+            //     }
+            // }
             // For new conversations with an assistant, set up the initial prompt
             $conversation = $this->conversations->get($conversationId);
             if (!$conversation && $assistantId) {
                 $assistant = $this->assistants->get($assistantId);
                 if ($assistant) {
-                    // Add the assistant's prompt as the first message
-                    $this->conversations->addMessage($conversationId, $assistant['prompt']);
-                    // Add the acknowledgment response
-                    $this->conversations->updateResponse($conversationId,
-                        "Thank you for explaining how I should respond to your prompt. I will follow your instructions precisely. I am ready to begin.");
+                    // Create the conversation with assistant_id and prompt first
+                    $conversation = [
+                        'id' => $conversationId,
+                        'title' => "Conversation $conversationId",
+                        'assistant_id' => $assistantId,
+                        'assistant_prompt' => $assistant['prompt'],
+                        'assistant_acknowledgment' => "Thank you for explaining how I should respond to your prompt. I will follow your instructions precisely. I am ready to begin.",
+                        'messages' => []
+                    ];
+                    $this->conversations->save($conversationId, $conversation);
                 }
             }
 
