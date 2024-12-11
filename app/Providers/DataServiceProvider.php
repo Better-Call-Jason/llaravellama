@@ -29,6 +29,13 @@ class DataServiceProvider extends ServiceProvider
         $this->app->singleton(OllamaService::class, function ($app) {
             return new OllamaService($app->make(ModelService::class));
         });
+
+        $this->app->singleton(OllamaService::class, function ($app) {
+            return new OllamaService(
+                $app->make(ModelService::class),
+                $app->make(OllamaLoggingService::class)
+            );
+        });
     }
 
     /**

@@ -39,27 +39,32 @@ class ChatController extends Controller
 
     public function sendMessage(Request $request)
     {
+
         try {
             $conversationId = $request->input('conversationId', time());
             $message = $request->input('message');
             $assistantId = $request->input('assistantId');
 
-            // Save the initial message
-            $this->conversations->addMessage($conversationId, $message);
-
-            // Get conversation context
-            $context = $this->conversations->getContext($conversationId);
-
-            // Add assistant context if selected
-            $fullPrompt = '';
-            if ($assistantId) {
+            // For new conversations with an assistant, set up the initial prompt
+            $conversation = $this->conversations->get($conversationId);
+            if (!$conversation && $assistantId) {
                 $assistant = $this->assistants->get($assistantId);
                 if ($assistant) {
-                    $fullPrompt = "System: {$assistant['prompt']}\n\n";
+                    // Add the assistant's prompt as the first message
+                    $this->conversations->addMessage($conversationId, $assistant['prompt']);
+                    // Add the acknowledgment response
+                    $this->conversations->updateResponse($conversationId,
+                        "Thank you for explaining how I should respond to your prompt. I will follow your instructions precisely. I am ready to begin.");
                 }
             }
 
-            $fullPrompt .= $context . "Human: $message\nAssistant:";
+            // Save the current message
+            $this->conversations->addMessage($conversationId, $message);
+
+            // Get conversation context (this now includes assistant prompt if it exists)
+            $context = $this->conversations->getContext($conversationId);
+
+            $fullPrompt = $context . "Prompt: $message\nResponse:";
             $currentModel = $this->models->getCurrentModel();
 
             return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {

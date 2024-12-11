@@ -35,9 +35,10 @@ class OllamaService
         '70b'
     ];
 
-    public function __construct(ModelService $modelService)
+    public function __construct(ModelService $modelService, OllamaLoggingService $logger)
     {
         $this->modelService = $modelService;
+        $this->logger = $logger;
     }
 
     protected function getTimeoutsForModel($model)
@@ -52,35 +53,19 @@ class OllamaService
         return $this->modelTimeouts['default'];
     }
 
-//    protected function makeRequest($prompt, $model)
-//    {
-//        $ch = curl_init('http://localhost:11434/api/generate');
-//        if ($ch === false) {
-//            throw new \Exception("Failed to initialize cURL");
-//        }
-//
-//        $timeouts = $this->getTimeoutsForModel($model);
-//
-//        curl_setopt_array($ch, [
-//            CURLOPT_POST => 1,
-//            CURLOPT_POSTFIELDS => json_encode([
-//                'model' => $model,
-//                'prompt' => $prompt,
-//                'stream' => true
-//            ]),
-//            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-//            CURLOPT_TIMEOUT => $timeouts['response'],
-//            CURLOPT_CONNECTTIMEOUT => $timeouts['connection'],
-//            CURLOPT_TCP_KEEPALIVE => 1
-//        ]);
-//
-//        return $ch;
-//    }
-
     protected function makeRequest($prompt, $model) {
         $ch = curl_init('http://localhost:11434/api/generate');
 
-        $timeouts = $this->getTimeoutsForModel($model);
+//        $timeouts = $this->getTimeoutsForModel($model);
+        // Log the request
+
+        $requestData = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'stream' => true
+        ];
+
+        $logFile = $this->logger->logRequest($model, $prompt, $requestData);
 
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
@@ -96,9 +81,14 @@ class OllamaService
             CURLOPT_TCP_KEEPINTVL => 40,
         ]);
 
+        // Store log filename in curl handle using custom header
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'X-Log-File: ' . $logFile
+        ]);
+
         return $ch;
     }
-
 
     protected function loadAndCheckModel($model)
     {
@@ -136,18 +126,36 @@ class OllamaService
         return false;
     }
 
-    public function generateResponse($prompt, $model) {
+    public function generateResponse($prompt, $model)
+    {
         $attempt = 0;
         $lastError = null;
+        $logFile = null;
 
         while ($attempt < $this->maxRetries) {
             try {
                 $ch = $this->makeRequest($prompt, $model);
-                return $ch;
+
+                // Extract log filename from custom header
+                $headers = curl_getinfo($ch, CURLINFO_HEADER_OUT);
+                if (preg_match('/X-Log-File: (.+)/', $headers, $matches)) {
+                    $logFile = $matches[1];
+                }
+
+                // Wrap the curl handle to capture and log the full response
+                return $this->wrapCurlHandle($ch, $logFile);
+
             } catch (\Exception $e) {
                 $attempt++;
                 $lastError = $e;
                 \Log::warning("Stream attempt $attempt failed: " . $e->getMessage());
+
+                if ($logFile) {
+                    $this->logger->logResponse($logFile, null, [
+                        'attempt' => $attempt,
+                        'error' => $e->getMessage()
+                    ]);
+                }
 
                 if ($attempt < $this->maxRetries) {
                     sleep($this->retryDelay);
@@ -158,25 +166,39 @@ class OllamaService
 
         throw new \Exception("Failed after {$this->maxRetries} attempts. Last error: " . $lastError->getMessage());
     }
-//
-//    public function generateResponse($prompt, $model)
-//    {
-//        $attempt = 0;
-//        while ($attempt < $this->maxRetries) {
-//            try {
-//                return $this->makeRequest($prompt, $model);
-//            } catch (\Exception $e) {
-//                $attempt++;
-//                \Log::error("Ollama generation attempt $attempt failed: " . $e->getMessage());
-//
-//                if ($attempt < $this->maxRetries) {
-//                    $this->recoverModel($model);
-//                } else {
-//                    throw new \Exception("Failed to generate response after $attempt attempts");
-//                }
-//            }
-//        }
-//    }
+    protected function wrapCurlHandle($ch, $logFile)
+    {
+        $fullResponse = '';
+
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $logFile) {
+            if ($jsonData = json_decode($data, true)) {
+                if (isset($jsonData['response'])) {
+                    $fullResponse .= $jsonData['response'];
+                    // Log intermediate response
+                    $this->logger->logResponse($logFile, [
+                        'streaming' => true,
+                        'current_response' => $fullResponse,
+                        'metadata' => $jsonData // This will include any additional fields from the response
+                    ]);
+                }
+
+                // Check if this is the final response
+                if (isset($jsonData['done']) && $jsonData['done'] === true) {
+                    // Log final complete response
+                    $this->logger->logResponse($logFile, [
+                        'streaming' => false,
+                        'final_response' => $fullResponse,
+                        'total_length' => strlen($fullResponse),
+                        'completion_timestamp' => date('Y-m-d H:i:s'),
+                        'metadata' => $jsonData
+                    ]);
+                }
+            }
+            return strlen($data);
+        });
+
+        return $ch;
+    }
 
     protected function recoverModel($model)
     {

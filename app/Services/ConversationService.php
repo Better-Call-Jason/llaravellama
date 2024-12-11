@@ -70,12 +70,27 @@ class ConversationService extends JsonStorageService
             return '';
         }
 
-        $messages = array_slice($conversation['messages'], -$limit);
+        $messages = [];
+
+        // If this is a new conversation, we want to include all messages
+        // (assistant prompt + confirmation + context + current message)
+        if (count($conversation['messages']) <= 3) {
+            $messages = array_slice($conversation['messages'], 0, -1);
+        } else {
+            // For ongoing conversations, get the assistant prompt + last few messages
+            $messages = array_merge(
+            // Get the first message (assistant prompt)
+                array_slice($conversation['messages'], 0, 1),
+                // Get the recent context messages, excluding current message
+                array_slice($conversation['messages'], -($limit + 1), -1)
+            );
+        }
+
         $context = '';
         foreach ($messages as $msg) {
-            $context .= "Human: {$msg['prompt']}\n";
+            $context .= "Prompt: {$msg['prompt']}\n";
             if (isset($msg['response'])) {
-                $context .= "Assistant: {$msg['response']}\n";
+                $context .= "Response: {$msg['response']}\n";
             }
         }
         return $context;
