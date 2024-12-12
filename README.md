@@ -31,6 +31,7 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **Full Debug Mode**: Out-of-the-box debugging support for mobile testing and development
 - **Service Debugging**: Easily toggle comprehensive service-level debugging for troubleshooting
 - **Model Health Recovery**: Automatic model health monitoring and recovery system that handles Ollama instabilities with automated repair and restart capabilities
+
 ## 🎮 Live Demo
 
 [Try LlaraveLlama Now](https://llaravellama.com)
@@ -38,65 +39,71 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 ### Demo Environment Notes:
 - Hosted on a basic Linode server - performance may vary with concurrent users
 - All conversations are public and visible to other demo users
-- Assistants and Conversations may be deleted at any time.
+- Assistants and Conversations may be deleted at any time
 - Perfect for a quick test drive before your local installation
 
 The demo is intended as a preview of LlaraveLlama's features. For the best experience, we recommend running your own private instance.
 
-## 🛠 Technical Requirements
+## 🛠 System Requirements
 
-- PHP 8.1 or higher
-- PHP-Curl
-- Php-XML
-- Composer
-- Node.js & NPM
-- Ollama installation
-- Basic system for running LLMs (Most modern laptops will work!)
+### Supported Operating Systems
+- Ubuntu 22.04 LTS (Tested and verified)
+- Ubuntu 24.04 LTS (Tested and verified)
 
-## 📱 Mobile Access Setup
-
-1. Deploy LlaraveLlama on your:
-    - Local PC
-    - Cloud server (e.g., Linode)
-2. Configure port forwarding
-3. Connect to the ip address the machine running the app: `http://your_computer_ip_address:8000/`
-4. Enjoy a premium mobile AI chat experience!
+### Hardware Requirements
+- Basic system capable of running LLMs (Most modern laptops will work!)
+- Minimum 8GB RAM recommended
+- 10GB free disk space
 
 ## 💾 Installation
 
+LlaraveLlama now features a fully automated installation process that handles all dependencies and setup in under 3 minutes.
+
+1. Clone the repository:
 ```bash
-# Clone the repository
+# clone the project
 git clone https://github.com/Better-Call-Jason/LlaraveLlama.git
 
-# Install Ollama (Linux)
-curl https://ollama.ai/install.sh | sh
-# Start Ollama service
-systemctl start ollama
+# nter the project directory
+cd LlaraveLlama
 
-# Install at least one model
-ollama pull llama3.2:3b
-
-# Install dependencies
-composer install
-npm install
-
-# Set up environment
-cp .env.example .env
-php artisan key:generate
-
-# Build for production
-npm run prod
-
-# Start the server
-nohup php artisan serve --host=0.0.0.0 --port=8000 > storage/logs/artisan.log 2>&1 &
-
-# Open port in firewall if needed
-sudo ufw allow 8000
 ```
 
-### Your private LlaraveLlama app will be available at: 
-  - `http://localhost:8000`
-  - `http://your_computer_ip_address:8000/` for use on other locally connected devices
+2. Run the installation script:
+```bash
+#make the setup script executable
+chmod +x setup.sh
+
+#run the setup.sh script as sudo
+sudo ./setup.sh
+```
+
+That's it! The script automatically:
+- Installs all required system dependencies
+- Sets up PHP, Node.js, and npm
+- Installs and configures Ollama
+- Downloads 3 lightweight AI models
+- Configures the Laravel application
+- Starts the server
+
+Once complete, your LlaraveLlama instance will be available at:
+- Local access: `http://localhost:8000`
+- Network access: `http://your_computer_ip_address:8000`
+
+### Future Starts
+
+To start the server after initial installation:
+```bash
+sudo ./setup.sh --serve
+```
+
+## 📱 Mobile Access Setup
+
+The application is automatically configured for mobile access during installation. Simply:
+
+1. Ensure your device is on the same network as the host machine
+2. Access LlaraveLlama using the network URL provided after installation
+3. Enjoy a premium private mobile AI chat experience!
 
 ## 🔍 Debugging Features
 
@@ -123,19 +130,13 @@ php artisan config:clear
 php artisan cache:clear
 ```
 
-### Production Environments
-
-For production deployments:
-1. Ensure APP_DEBUG is set to false in your .env file
-2. Clear all configuration caches
-3. Verify debug panel is not visible
-4. Confirm no sensitive information is exposed
-
-This configuration provides optimal security and performance while maintaining the ability to quickly enable debugging when needed.
-
 ### Mobile Debugging
 
 The debug panel is fully responsive and works seamlessly on mobile devices when enabled through the .env file - no additional configuration required.
+
+### Production Environments
+
+This application has been fully tested on Linode servers. The demo runs on NGINX. The code is ready for a production server. Please open an issue for assistance with updating the Vite Config
 
 ## 👨‍💻 About the Author
 
