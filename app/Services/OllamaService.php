@@ -54,7 +54,8 @@ class OllamaService
     }
 
     protected function makeRequest($prompt, $model) {
-        $ch = curl_init('http://localhost:11434/api/generate');
+        $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
+        $ch = curl_init($baseUrl . '/api/generate');
 
 //        $timeouts = $this->getTimeoutsForModel($model);
         // Log the request
@@ -94,7 +95,8 @@ class OllamaService
     {
         $timeouts = $this->getTimeoutsForModel($model);
 
-        $ch = curl_init('http://localhost:11434/api/generate');
+        $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
+        $ch = curl_init($baseUrl . '/api/generate');
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_RETURNTRANSFER => true,
@@ -232,7 +234,8 @@ class OllamaService
 
     protected function unloadModel($model)
     {
-        $ch = curl_init('http://localhost:11434/api/generate');
+        $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
+        $ch = curl_init($baseUrl . '/api/generate');
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_RETURNTRANSFER => true,
@@ -255,7 +258,8 @@ class OllamaService
 
     protected function pullModel($model)
     {
-        $ch = curl_init('http://localhost:11434/api/pull');
+        $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
+        $ch = curl_init($baseUrl . '/api/pull');
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_RETURNTRANSFER => true,
