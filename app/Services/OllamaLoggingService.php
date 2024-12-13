@@ -14,15 +14,12 @@ class OllamaLoggingService
         }
     }
 
-    public function logRequest($model, $prompt, $requestData)
+    public function logRequest($model, $requestData)
     {
         $timestamp = date('Y-m-d_H-i-s');
         $logEntry = [
             'timestamp' => $timestamp,
-            'model' => $model,
-            'prompt' => $prompt,
             'request' => $requestData,
-            'type' => 'request'
         ];
 
         $filename = "{$timestamp}_{$model}_request.json";

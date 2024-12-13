@@ -89,6 +89,7 @@ window.saveAssistant = function() {
                                 scrollTop: activeAssistant.offset().top - $(this).offset().top + $(this).scrollTop()
                             }, 500);
                         }
+                        startNewConversation();
                     });
                 });
 
@@ -253,7 +254,7 @@ function renderAssistants(data, containers) {
 
             div.on('click', function() {
                 const assistantId = $(this).data('id');
-                stopGeneration();
+                startNewConversation();
                 if (window.selectedAssistantId === assistantId) {
                     window.selectedAssistantId = null;
                     $(this).removeClass('active');
@@ -264,9 +265,6 @@ function renderAssistants(data, containers) {
                     window.selectedAssistantId = assistantId;
                     showToast(`Assistant "${titleSpan.text()}" selected`);
                 }
-
-                closeOffcanvas();
-                $('#message-input').focus();
             });
 
             containers.each(function() {
@@ -962,7 +960,7 @@ $('.model-selector').change(function() {
 
     // Keep all selectors in sync
     allSelectors.val(model);
-    stopGeneration();
+    startNewConversation();
 
     $.post('/model/switch', { model }, function(response) {
         if (response.success) {
@@ -981,9 +979,6 @@ $('.assistant-selector').change(function() {
 
     // Keep all selectors in sync
     allSelectors.val(assistantId);
-    closeOffcanvas();
-    stopGeneration();
-    $('#message-input').focus();
 });
 
 $('#message-input').keypress(function(e) {

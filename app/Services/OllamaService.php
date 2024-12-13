@@ -5,35 +5,12 @@ namespace App\Services;
 class OllamaService
 {
     protected $modelService;
-
-
     protected $maxRetries = 5;
-    protected $retryDelay = 3; // seconds
-    protected $streamTimeout = 300; // seconds
+    protected $retryDelay = 3;
+    protected $streamTimeout = 300;
+    protected $keepIdle = 180;
+    protected $keepInterval = 60;
 
-    // Default timeouts based on model size
-    protected $modelTimeouts = [
-        'default' => [
-            'connection' => 60,
-            'response' => 180
-        ],
-        'large' => [
-            'connection' => 90,
-            'response' => 300
-        ],
-        'xlarge' => [
-            'connection' => 120,
-            'response' => 600
-        ]
-    ];
-
-    // Models that need extended timeouts
-    protected $largeModels = [
-        '13b',
-        '30b',
-        '34b',
-        '70b'
-    ];
 
     public function __construct(ModelService $modelService, OllamaLoggingService $logger)
     {
@@ -41,39 +18,23 @@ class OllamaService
         $this->logger = $logger;
     }
 
-    protected function getTimeoutsForModel($model)
-    {
-        // Check model size by looking for common identifiers in the model name
-        foreach ($this->largeModels as $size) {
-            if (stripos($model, $size) !== false) {
-                return $size > '30b' ? $this->modelTimeouts['xlarge'] : $this->modelTimeouts['large'];
-            }
-        }
-
-        return $this->modelTimeouts['default'];
-    }
-
     protected function makeRequest($prompt, $model) {
         $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
         $ch = curl_init($baseUrl . '/api/generate');
 
-//        $timeouts = $this->getTimeoutsForModel($model);
         // Log the request
-
         $requestData = [
             'model' => $model,
             'prompt' => $prompt,
-            'stream' => true
         ];
 
-        $logFile = $this->logger->logRequest($model, $prompt, $requestData);
+        $logFile = $this->logger->logRequest($model, $requestData);
 
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_POSTFIELDS => json_encode([
                 'model' => $model,
                 'prompt' => $prompt,
-                'stream' => true
             ]),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_TIMEOUT => $this->streamTimeout,
@@ -93,7 +54,7 @@ class OllamaService
 
     protected function loadAndCheckModel($model)
     {
-        $timeouts = $this->getTimeoutsForModel($model);
+
 
         $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
         $ch = curl_init($baseUrl . '/api/generate');
@@ -106,8 +67,6 @@ class OllamaService
                 'stream' => false
             ]),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => $timeouts['response'],
-            CURLOPT_CONNECTTIMEOUT => $timeouts['connection']
         ]);
 
         $response = curl_exec($ch);
@@ -168,6 +127,7 @@ class OllamaService
 
         throw new \Exception("Failed after {$this->maxRetries} attempts. Last error: " . $lastError->getMessage());
     }
+
     protected function wrapCurlHandle($ch, $logFile)
     {
         $fullResponse = '';
@@ -180,7 +140,7 @@ class OllamaService
                     $this->logger->logResponse($logFile, [
                         'streaming' => true,
                         'current_response' => $fullResponse,
-                        'metadata' => $jsonData // This will include any additional fields from the response
+                        'metadata' => $jsonData
                     ]);
                 }
 
