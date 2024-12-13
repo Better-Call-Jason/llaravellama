@@ -5,8 +5,6 @@ namespace App\Services;
 class OllamaService
 {
     protected $modelService;
-
-
     protected $maxRetries = 5;
     protected $retryDelay = 3; // seconds
     protected $streamTimeout = 300; // seconds
@@ -27,7 +25,6 @@ class OllamaService
         ]
     ];
 
-    // Models that need extended timeouts
     protected $largeModels = [
         '13b',
         '30b',
@@ -43,26 +40,23 @@ class OllamaService
 
     protected function getTimeoutsForModel($model)
     {
-        // Check model size by looking for common identifiers in the model name
         foreach ($this->largeModels as $size) {
             if (stripos($model, $size) !== false) {
                 return $size > '30b' ? $this->modelTimeouts['xlarge'] : $this->modelTimeouts['large'];
             }
         }
-
         return $this->modelTimeouts['default'];
     }
 
     protected function makeRequest($prompt, $model) {
         $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
-        $ch = curl_init($baseUrl . '/api/generate');
-
-//        $timeouts = $this->getTimeoutsForModel($model);
-        // Log the request
+        $ch = curl_init($baseUrl . '/api/chat');
 
         $requestData = [
             'model' => $model,
-            'prompt' => $prompt,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ],
             'stream' => true
         ];
 
@@ -70,22 +64,15 @@ class OllamaService
 
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => json_encode([
-                'model' => $model,
-                'prompt' => $prompt,
-                'stream' => true
-            ]),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode($requestData),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'X-Log-File: ' . $logFile
+            ],
             CURLOPT_TIMEOUT => $this->streamTimeout,
             CURLOPT_TCP_KEEPALIVE => 1,
             CURLOPT_TCP_KEEPIDLE => 180,
             CURLOPT_TCP_KEEPINTVL => 40,
-        ]);
-
-        // Store log filename in curl handle using custom header
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-Log-File: ' . $logFile
         ]);
 
         return $ch;
@@ -96,13 +83,15 @@ class OllamaService
         $timeouts = $this->getTimeoutsForModel($model);
 
         $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
-        $ch = curl_init($baseUrl . '/api/generate');
+        $ch = curl_init($baseUrl . '/api/chat');
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POSTFIELDS => json_encode([
                 'model' => $model,
-                'prompt' => 'test', // Minimal prompt for health check
+                'messages' => [
+                    ['role' => 'user', 'content' => 'test']
+                ],
                 'stream' => false
             ]),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
@@ -122,10 +111,43 @@ class OllamaService
 
         if ($httpCode === 200 && $response) {
             $data = json_decode($response, true);
-            return isset($data['response']) && !empty($data['response']);
+            return isset($data['message']) && !empty($data['message']['content']);
         }
 
         return false;
+    }
+
+    protected function wrapCurlHandle($ch, $logFile)
+    {
+        $fullResponse = '';
+
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $logFile) {
+            if ($jsonData = json_decode($data, true)) {
+                if (isset($jsonData['message']['content'])) {
+                    $fullResponse .= $jsonData['message']['content'];
+                    // Log intermediate response
+                    $this->logger->logResponse($logFile, [
+                        'streaming' => true,
+                        'current_response' => $fullResponse,
+                        'metadata' => $jsonData
+                    ]);
+                }
+
+                if (isset($jsonData['done']) && $jsonData['done'] === true) {
+                    // Log final complete response
+                    $this->logger->logResponse($logFile, [
+                        'streaming' => false,
+                        'final_response' => $fullResponse,
+                        'total_length' => strlen($fullResponse),
+                        'completion_timestamp' => date('Y-m-d H:i:s'),
+                        'metadata' => $jsonData
+                    ]);
+                }
+            }
+            return strlen($data);
+        });
+
+        return $ch;
     }
 
     public function generateResponse($prompt, $model)
@@ -138,13 +160,11 @@ class OllamaService
             try {
                 $ch = $this->makeRequest($prompt, $model);
 
-                // Extract log filename from custom header
                 $headers = curl_getinfo($ch, CURLINFO_HEADER_OUT);
                 if (preg_match('/X-Log-File: (.+)/', $headers, $matches)) {
                     $logFile = $matches[1];
                 }
 
-                // Wrap the curl handle to capture and log the full response
                 return $this->wrapCurlHandle($ch, $logFile);
 
             } catch (\Exception $e) {
@@ -168,57 +188,19 @@ class OllamaService
 
         throw new \Exception("Failed after {$this->maxRetries} attempts. Last error: " . $lastError->getMessage());
     }
-    protected function wrapCurlHandle($ch, $logFile)
-    {
-        $fullResponse = '';
-
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$fullResponse, $logFile) {
-            if ($jsonData = json_decode($data, true)) {
-                if (isset($jsonData['response'])) {
-                    $fullResponse .= $jsonData['response'];
-                    // Log intermediate response
-                    $this->logger->logResponse($logFile, [
-                        'streaming' => true,
-                        'current_response' => $fullResponse,
-                        'metadata' => $jsonData // This will include any additional fields from the response
-                    ]);
-                }
-
-                // Check if this is the final response
-                if (isset($jsonData['done']) && $jsonData['done'] === true) {
-                    // Log final complete response
-                    $this->logger->logResponse($logFile, [
-                        'streaming' => false,
-                        'final_response' => $fullResponse,
-                        'total_length' => strlen($fullResponse),
-                        'completion_timestamp' => date('Y-m-d H:i:s'),
-                        'metadata' => $jsonData
-                    ]);
-                }
-            }
-            return strlen($data);
-        });
-
-        return $ch;
-    }
 
     protected function recoverModel($model)
     {
         \Log::info("Attempting to recover Ollama model: $model");
 
         try {
-            // First try to unload the model
             $this->unloadModel($model);
             sleep(1);
 
-            // Try to load the model with a simple health check
             if (!$this->loadAndCheckModel($model)) {
                 \Log::warning("Model failed health check after initial load attempt");
-
-                // Pull the model again in case it's corrupted
                 $this->pullModel($model);
 
-                // Try loading one more time
                 if (!$this->loadAndCheckModel($model)) {
                     throw new \Exception("Model recovery failed after repull");
                 }
@@ -235,14 +217,14 @@ class OllamaService
     protected function unloadModel($model)
     {
         $baseUrl = env('OLLAMA_BASE_URL', 'http://localhost:11434');
-        $ch = curl_init($baseUrl . '/api/generate');
+        $ch = curl_init($baseUrl . '/api/chat');
         curl_setopt_array($ch, [
             CURLOPT_POST => 1,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POSTFIELDS => json_encode([
                 'model' => $model,
-                'prompt' => '', // Empty prompt
-                'keep_alive' => '0s' // Immediate unload
+                'messages' => [],
+                'keep_alive' => '0s'
             ]),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json']
         ]);
@@ -278,5 +260,5 @@ class OllamaService
             throw new \Exception("Failed to pull model (HTTP $httpCode)");
         }
     }
-
 }
+
