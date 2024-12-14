@@ -127,7 +127,7 @@ get_ubuntu_version() {
 check_system_dependencies() {
     echo -e "${YELLOW}Checking system dependencies...${NC}"
     UBUNTU_VERSION=$(get_ubuntu_version)
-    
+
     # Check for curl
     if ! command_exists curl; then
         echo -e "${YELLOW}Installing curl...${NC}"
@@ -240,7 +240,7 @@ setup_laravel() {
     echo -e "${YELLOW}Setting up Laravel application...${NC}"
 
     #clear cache
-    php artisan optimize:clear  
+    php artisan optimize:clear
 
     # Run composer with increased memory limit
     echo -e "${YELLOW}Installing PHP dependencies...${NC}"
@@ -274,8 +274,29 @@ setup_laravel() {
     run_as_user npm run prod  #prod is a specific internal designation do not change
 
     #sets cache
-    php artisan optimize 
+    php artisan optimize
 }
+
+setup_sample_data() {
+    echo -e "${YELLOW}Setting up sample data...${NC}"
+
+    # Run the conversation creation script
+    if [ -f "./sample_conversations.sh" ]; then
+        run_as_user bash ./sample_conversations.sh
+        echo -e "${GREEN}Sample conversations created successfully${NC}"
+    else
+        echo -e "${RED}Warning: sample_conversations.sh not found${NC}"
+    fi
+
+    # Run the assistants creation script
+    if [ -f "./create_assistants.sh" ]; then
+        run_as_user bash ./create_assistants.sh
+        echo -e "${GREEN}Sample assistants created successfully${NC}"
+    else
+        echo -e "${RED}Warning: create_assistants.sh not found${NC}"
+    fi
+}
+
 
 # Function to start the server
 start_server() {
@@ -310,6 +331,7 @@ main() {
         setup_ollama
         pull_models
         setup_laravel
+        setup_sample_data
 
         # Start the server
         start_server
