@@ -389,7 +389,6 @@ window.sendMessage = function()
 };
 
 
-
 window.deleteConversation = function(id) {
     $.ajax({
         url: `/conversation/delete/${id}`,
