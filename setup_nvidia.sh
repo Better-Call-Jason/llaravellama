@@ -33,18 +33,6 @@ apt-get update
 echo "Installing NVIDIA Container Toolkit..."
 apt-get install -y nvidia-container-toolkit
 
-# Configure Docker to use the NVIDIA runtime
-echo "Configuring Docker runtime..."
-nvidia-ctk runtime configure --runtime=docker
-
-# Restart Docker daemon
-echo "Restarting Docker daemon..."
-systemctl restart docker
-
-echo "Installation complete! The system needs to reboot to load the NVIDIA drivers."
-echo "After reboot, run this verification command:"
-echo "docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi"
-
 # Ask for reboot
 read -p "Would you like to reboot now? (y/n) " -n 1 -r
 echo
