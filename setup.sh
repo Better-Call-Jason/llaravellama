@@ -281,11 +281,11 @@ setup_sample_data() {
     echo -e "${YELLOW}Setting up sample data...${NC}"
 
     # Run the conversation creation script
-    if [ -f "./sample_conversations.sh" ]; then
-        run_as_user bash ./sample_conversations.sh
+    if [ -f "./create_conversations.sh" ]; then
+        run_as_user bash ./create_conversations.sh
         echo -e "${GREEN}Sample conversations created successfully${NC}"
     else
-        echo -e "${RED}Warning: sample_conversations.sh not found${NC}"
+        echo -e "${RED}Warning: create_conversations.sh not found${NC}"
     fi
 
     # Run the assistants creation script

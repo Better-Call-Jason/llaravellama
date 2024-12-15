@@ -61,12 +61,20 @@ class ChatController extends Controller
                 $this->conversations->save($conversationId, $conversation);
             }
 
-            // Save the current message
-            $this->conversations->addMessage($conversationId, $message);
+//            // Save the current message
+//            $this->conversations->addMessage($conversationId, $message);
+//
+//            $context = $this->conversations->getContext($conversationId);
+//
+//            $fullPrompt = $context . "Prompt: $message\nResponse:";
 
             $context = $this->conversations->getContext($conversationId);
 
             $fullPrompt = $context . "Prompt: $message\nResponse:";
+
+            // Save the current message after preparing context
+            $this->conversations->addMessage($conversationId, $message);
+
             $currentModel = $this->models->getCurrentModel();
 
             return response()->stream(function() use ($fullPrompt, $conversationId, $currentModel) {
@@ -132,6 +140,7 @@ class ChatController extends Controller
         }
     }
     // Conversation Management
+
     public function getConversations()
     {
         return response()->json(['conversations' => $this->conversations->getAll()]);

@@ -16,19 +16,20 @@ class OllamaLoggingService
 
     public function logRequest($model, $requestData)
     {
-        $timestamp = date('Y-m-d_H-i-s');
-        $logEntry = [
-            'timestamp' => $timestamp,
-            'request' => $requestData,
-        ];
+//        $timestamp = date('Y-m-d_H-i-s');
+//        $logEntry = [
+//            'timestamp' => $timestamp,
+//            'request' => $requestData,
+//        ];
+//
+//        $filename = "{$timestamp}_{$model}_request.json";
+//        file_put_contents(
+//            $this->logPath . $filename,
+//            json_encode($logEntry, JSON_PRETTY_PRINT)
+//        );
+//
+//        return $filename;
 
-        $filename = "{$timestamp}_{$model}_request.json";
-        file_put_contents(
-            $this->logPath . $filename,
-            json_encode($logEntry, JSON_PRETTY_PRINT)
-        );
-
-        return $filename;
     }
 
     public function logResponse($filename, $response, $error = null)

@@ -91,21 +91,31 @@ class ConversationService extends JsonStorageService
         }
 
         // Get messages BEFORE the last one (since it was just added and will be appended later)
+//        if (!empty($conversation['messages'])) {
+//            $messageCount = count($conversation['messages']);
+//            if ($messageCount > 1) { // Only if we have more than just the new message
+//                $recentMessages = array_slice($conversation['messages'], -($limit), $limit - 1);
+//                foreach ($recentMessages as $msg) {
+//                    $context .= "Prompt: {$msg['prompt']}\n";
+//                    if (isset($msg['response'])) {
+//                        $context .= "Response: {$msg['response']}\n";
+//                    }
+//                }
+//            }
+//        }
         if (!empty($conversation['messages'])) {
-            $messageCount = count($conversation['messages']);
-            if ($messageCount > 1) { // Only if we have more than just the new message
-                $recentMessages = array_slice($conversation['messages'], -($limit), $limit - 1);
-                foreach ($recentMessages as $msg) {
-                    $context .= "Prompt: {$msg['prompt']}\n";
-                    if (isset($msg['response'])) {
-                        $context .= "Response: {$msg['response']}\n";
-                    }
+            $recentMessages = array_slice($conversation['messages'], -$limit);
+            foreach ($recentMessages as $msg) {
+                $context .= "Prompt: {$msg['prompt']}\n";
+                if (isset($msg['response'])) {
+                    $context .= "Response: {$msg['response']}\n";
                 }
             }
         }
 
         return $context;
     }
+
 
     public function search($query)
     {

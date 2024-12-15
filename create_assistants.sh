@@ -15,14 +15,14 @@ create_assistant() {
     local prompt="$2"
     local timestamp=$(date +%s)
     local filename="$COUNTER.json"
-    
+
     # Check if file exists
     if [ -f "$DIR/$filename" ]; then
         echo "File $filename | $name already exists. Skipping..."
     else
         cat > "$DIR/$filename" << EOF
 {
-    "id": $timestamp,
+    "id": $COUNTER,
     "name": "$name",
     "prompt": "$prompt",
     "created_at": $timestamp
@@ -30,7 +30,7 @@ create_assistant() {
 EOF
         echo "Created $name successfully"
     fi
-    
+
     # Increment counter for next assistant
     ((COUNTER++))
 }
