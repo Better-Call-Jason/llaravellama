@@ -35,7 +35,7 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
   - Gemma2 (2B) for creative tasks
 - **Rich Assistant Library**: 20+ carefully crafted assistant profiles for programming, writing, analysis and more
 - **Learning Resources**: Includes sample conversations demonstrating optimal prompting and advanced features
-- **Docker Support**: Choose between pre-built stable images or custom builds with included Dockerfile
+- **Docker Support**: This project has a Docker version that is super easy to install
  
 
 ## 🎮 Live Demo
