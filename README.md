@@ -29,8 +29,14 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 - **Theme Options**: Soft daylight and tender moonlight themes for comfortable viewing
 - **Lightweight**: Runs smoothly on modest hardware - from cloud VPS to your old laptop
 - **Full Debug Mode**: Out-of-the-box debugging support for mobile testing and development
-- **Service Debugging**: Easily toggle comprehensive service-level debugging for troubleshooting
-- **Model Health Recovery**: Automatic model health monitoring and recovery system that handles Ollama instabilities with automated repair and restart capabilities
+- **Pre-configured AI Models**: Ships with three lightweight but powerful models:
+  - Llama3.2 (3B) for general tasks
+  - Qwen2.5 (3B) for technical discussions
+  - Gemma2 (2B) for creative tasks
+- **Rich Assistant Library**: 20+ carefully crafted assistant profiles for programming, writing, analysis and more
+- **Learning Resources**: Includes sample conversations demonstrating optimal prompting and advanced features
+- **Docker Support**: Choose between pre-built stable images or custom builds with included Dockerfile
+ 
 
 ## 🎮 Live Demo
 
@@ -44,7 +50,60 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
 
 The demo is intended as a preview of LlaraveLlama's features. For the best experience, we recommend running your own private instance.
 
-## 🛠 System Requirements
+## 🎯 Quick Start Experience
+
+### Pre-configured Models
+LlaraveLlama comes with three efficient, production-ready models:
+- **Llama3.2 (3B)**: Excellent all-around performer for general tasks
+- **Qwen2.5 (3B)**: Specialized for coding and technical discussions  
+- **Gemma2 (2B)**: Optimized for creative and analytical tasks
+
+### Built-in Assistant Library
+Jump right in with our curated collection of specialized assistants:
+
+**Development & Technical**
+- Code Explainer
+- Python Mentor
+- Algorithm Master
+- Full Stack Web Assistant
+- DevOps Guide
+- Query Master
+
+**Professional & Business**
+- Business Report Writer
+- Email Response Crafter
+- Meeting Optimizer
+- Presentation Polisher
+
+**Education & Learning**
+- Homework Helper
+- Excel Formula Master
+- Design Pattern Sage
+
+**Specialty Assistants**
+- Recipe Wizard
+- Home Organization Expert
+- Family Activity Planner
+- And many more!
+
+### Sample Conversations
+Get started with example chats showcasing:
+- Professional email writing
+- Technical problem-solving
+- Creative writing workflows
+- Coding tutorials
+- And practical life scenarios
+
+These conversations serve as both learning resources and templates for your own interactions.
+
+### Docker Installation
+The easiest way to install is with Docker. 
+
+- [Docker-LlaraveLlama](https://github.com/Better-Call-Jason/Docker-LlaraveLlama) - The Docker version of this project
+
+## Non-Docker Installs :
+
+### 🛠 System Requirements
 
 ### Supported Operating Systems
 - Ubuntu 22.04 LTS (Tested and verified)
@@ -55,7 +114,7 @@ The demo is intended as a preview of LlaraveLlama's features. For the best exper
 - Minimum 8GB RAM recommended
 - 10GB free disk space
 
-## 💾 Installation
+### 💾 Installation
 
 LlaraveLlama now features a fully automated installation process that handles all dependencies and setup in under 3 minutes.
 
@@ -153,3 +212,7 @@ Your contributions are welcome! Whether it's bug fixes, feature additions, or do
 ## 📜 License
 
 LlaraveLlama is open-source software licensed under the [MIT license](LICENSE). See the [LICENSE](LICENSE) file for the full license text.
+
+## 🔗 Related Projects
+
+- [Docker-LlaraveLlama](https://github.com/Better-Call-Jason/Docker-LlaraveLlama) - The Docker version of this project
