@@ -12,9 +12,30 @@ Welcome to LlaraveLlama - where Laravel and Ollama come together like peanut but
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
 </div>
 
-## ✨ Why LlaraveLlama?
 
-LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful local AI models to create a completely private, self-hosted chat experience. From its eye-pleasing daylight theme to its soothing moonlight mode, every detail is crafted for your comfort and productivity.
+
+## ✨ Why LlaraveLlama?
+LlaraveLlama brings together the best of two worlds: Laravel's robust PHP framework and Ollama's powerful local AI models. This perfect combination delivers a completely private, self-hosted chat experience with everything you need right out of the box:
+
+**🎯 Ready to Use**
+
+- 3 powerful AI models optimized for different tasks
+- 20+ carefully crafted assistant profiles
+- 10 sample conversations to inspire and guide you
+
+**🔒 Privacy First**
+
+- 100% self-hosted - your data stays on your machine
+- No cloud dependencies
+- Complete control over your AI interactions
+
+**💎 Polished Experience**
+
+- Beautiful daylight and moonlight themes
+- Thoughtfully designed interface
+- Every detail crafted for comfort and productivity
+
+Get started with LlaraveLlama today and experience AI chat the way it should be: powerful, private, and perfectly tailored to you!
 
 ## 🚀 Key Features
 
@@ -35,105 +56,64 @@ LlaraveLlama combines the robust PHP framework Laravel with Ollama's powerful lo
   - Gemma2 (2B) for creative tasks
 - **Rich Assistant Library**: 20+ carefully crafted assistant profiles for programming, writing, analysis and more
 - **Learning Resources**: Includes sample conversations demonstrating optimal prompting and advanced features
-- **Docker Support**: This project has a Docker version that is super easy to install
- 
 
-## 🎮 Live Demo
 
-[Try LlaraveLlama Now](https://llaravellama.com)
+## 💫 Installation Options
 
-### Demo Environment Notes:
-- Hosted on a basic Linode server - performance may vary with concurrent users
-- All conversations are public and visible to other demo users
-- Assistants and Conversations may be deleted at any time
-- Perfect for a quick test drive before your local installation
+### Recommended: Docker Installation ⭐
 
-The demo is intended as a preview of LlaraveLlama's features. For the best experience, we recommend running your own private instance.
+The easiest way to get started with LlaraveLlama is using our Docker version. Visit our Docker repository for simple setup instructions:
 
-## 🎯 Quick Start Experience
+👉 [Install Docker-LlaraveLlama](https://github.com/Better-Call-Jason/Docker-LlaraveLlama)
 
-### Pre-configured Models
-LlaraveLlama comes with three efficient, production-ready models:
-- **Llama3.2 (3B)**: Excellent all-around performer for general tasks
-- **Qwen2.5 (3B)**: Specialized for coding and technical discussions  
-- **Gemma2 (2B)**: Optimized for creative and analytical tasks
+The Docker version provides:
+- One-command installation
+- Automatic dependency management
+- Easy updates
+- Both CPU and GPU support
+- Pre-configured environment
 
-### Built-in Assistant Library
-Jump right in with our curated collection of specialized assistants:
+### Manual Installation
 
-**Development & Technical**
-- Code Explainer
-- Python Mentor
-- Algorithm Master
-- Full Stack Web Assistant
-- DevOps Guide
-- Query Master
+If you prefer a non-Docker installation, follow these steps:
 
-**Professional & Business**
-- Business Report Writer
-- Email Response Crafter
-- Meeting Optimizer
-- Presentation Polisher
+#### 🛠 System Requirements
 
-**Education & Learning**
-- Homework Helper
-- Excel Formula Master
-- Design Pattern Sage
-
-**Specialty Assistants**
-- Recipe Wizard
-- Home Organization Expert
-- Family Activity Planner
-- And many more!
-
-### Sample Conversations
-Get started with example chats showcasing:
-- Professional email writing
-- Technical problem-solving
-- Creative writing workflows
-- Coding tutorials
-- And practical life scenarios
-
-These conversations serve as both learning resources and templates for your own interactions.
-
-### Docker Installation
-The easiest way to install is with Docker. 
-
-- [Docker-LlaraveLlama](https://github.com/Better-Call-Jason/Docker-LlaraveLlama) - The Docker version of this project
-
-## Non-Docker Installs :
-
-### 🛠 System Requirements
-
-### Supported Operating Systems
-- Ubuntu 22.04 LTS (Tested and verified)
-- Ubuntu 24.04 LTS (Tested and verified)
-
-### Hardware Requirements
-- Basic system capable of running LLMs (Most modern laptops will work!)
+- Ubuntu 22.04/24.04 LTS (Tested and verified)
 - Minimum 8GB RAM recommended
 - 10GB free disk space
 
-### 💾 Installation
-
-LlaraveLlama now features a fully automated installation process that handles all dependencies and setup in under 3 minutes.
+#### Installation Steps
 
 1. Clone the repository:
 ```bash
-# clone the project
 git clone https://github.com/Better-Call-Jason/LlaraveLlama.git
-
-# nter the project directory
-cd LlaraveLlama
-
 ```
 
-2. Run the installation script:
 ```bash
-#make the setup script executable
-chmod +x setup.sh
+cd LlaraveLlama
+```
 
-#run the setup.sh script as sudo
+2. (GPU Users Only) Set up NVIDIA drivers:
+```bash
+chmod +x setup_nvidia.sh
+```
+
+```bash
+sudo ./setup_nvidia.sh
+```
+
+```bash
+# Verify GPU connection
+nvidia-smi
+```
+
+3. Run the installation script:
+```bash
+chmod +x setup.sh
+```
+
+```bash
 sudo ./setup.sh
 ```
 
@@ -145,16 +125,19 @@ That's it! The script automatically:
 - Configures the Laravel application
 - Starts the server
 
-Once complete, your LlaraveLlama instance will be available at:
-- Local access: `http://localhost:8000`
-- Network access: `http://your_computer_ip_address:8000`
-
 ### Future Starts
 
 To start the server after initial installation:
 ```bash
 sudo ./setup.sh --serve
 ```
+
+## 📱 Accessing the Application
+
+- Local access: `http://localhost:8000`
+- Network access: `http://your_computer_ip_address:8000`
+- Mobile access: Ensure your device is on the same network and use `http://host_ip:8000`
+
 
 ## 📱 Mobile Access Setup
 
