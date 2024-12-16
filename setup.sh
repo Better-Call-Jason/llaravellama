@@ -337,7 +337,7 @@ setup_sample_data() {
 
     # Run the conversation creation script
     if [ -f "./create_conversations.sh" ]; then
-        run_as_user bash ./create_conversations.sh
+        sudo bash ./create_conversations.sh
         echo -e "${GREEN}Sample conversations created successfully${NC}"
     else
         echo -e "${RED}Warning: create_conversations.sh not found${NC}"
@@ -345,7 +345,7 @@ setup_sample_data() {
 
     # Run the assistants creation script
     if [ -f "./create_assistants.sh" ]; then
-        run_as_user bash ./create_assistants.sh
+        sudo bash ./create_assistants.sh
         echo -e "${GREEN}Sample assistants created successfully${NC}"
     else
         echo -e "${RED}Warning: create_assistants.sh not found${NC}"
