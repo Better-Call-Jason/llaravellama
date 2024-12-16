@@ -10,157 +10,129 @@ NC='\033[0m'
 MIN_NODE_VERSION="18.0.0"
 MIN_NPM_VERSION="9.0.0"
 
-# Check if script is run with sudo or as root
-if [ "$EUID" -ne 0 ] && [ -z "$SUDO_USER" ]; then
-    echo -e "${RED}Please run this script with sudo privileges${NC}"
-    echo -e "${YELLOW}Usage: sudo $0 [--serve]${NC}"
-    exit 1
-fi
-
-# Preserve the actual user who ran sudo, fallback to SUDO_USER if script was run with sudo
-if [ "$EUID" -eq 0 ] && [ -z "$SUDO_USER" ]; then
-    # Script was run as root directly
-    echo -e "${YELLOW}Warning: Running as root. It's recommended to run with sudo instead.${NC}"
-    ACTUAL_USER="root"
-    HOME_DIR="/root"
-else
-    # Script was run with sudo
-    ACTUAL_USER=$SUDO_USER
-    HOME_DIR=$(eval echo ~$SUDO_USER)
-fi
-
 # Define web root directory
 WEB_ROOT="/var/www/llaravellama"
 
-setup_directories() {
-    echo -e "${YELLOW}Setting up directory structure and permissions...${NC}"
-    
-    # Create web root if it doesn't exist
-    sudo mkdir -p "$WEB_ROOT"
-    
-    # Copy all regular files and directories
-    sudo cp -R . "$WEB_ROOT/"
-    
-    cd "$WEB_ROOT"
-
-    # Remove any existing .git directory from the destination
-    sudo rm -rf .git
-
-    # First set base ownership
-    sudo chown -R www-data:www-data .
-
-    # Set base permissions
-    sudo find . -type f -exec chmod 644 {} \;
-    sudo find . -type d -exec chmod 755 {} \;
-
-    # Create all required storage directories
-    sudo mkdir -p storage/app/public
-    sudo mkdir -p storage/app/data/conversations
-    sudo mkdir -p storage/app/data/assistants
-    sudo mkdir -p storage/framework/cache
-    sudo mkdir -p storage/framework/sessions
-    sudo mkdir -p storage/framework/views
-    sudo mkdir -p storage/logs
-    sudo mkdir -p storage/json
-
-    # Set proper ownership for storage and cache
-    sudo chown -R www-data:www-data storage
-    sudo chown -R www-data:www-data bootstrap/cache
-
-    # Set directory permissions with full write access
-    sudo chmod -R 775 storage
-    sudo find storage -type d -exec chmod 775 {} \;
-    sudo find bootstrap/cache -type d -exec chmod 775 {} \;
-    
-    # Set file permissions with write access
-    sudo find storage -type f -exec chmod 664 {} \;
-
-    # Set SGID bit on all storage directories and subdirectories
-    sudo find storage -type d -exec chmod g+s {} \;
-    sudo chmod g+s bootstrap/cache
-
-    # Specifically ensure critical directories are writable
-    sudo chmod 775 storage/app/data/conversations
-    sudo chmod 775 storage/app/data/assistants
-    sudo chown www-data:www-data storage/app/data/conversations
-    sudo chown www-data:www-data storage/app/data/assistants
-    sudo chmod g+s storage/app/data/conversations
-    sudo chmod g+s storage/app/data/assistants
-
-    # Handle vendor directory explicitly
-    if [ -d "vendor" ]; then
-        sudo chown -R www-data:www-data vendor
-        sudo chmod -R 755 vendor
-    fi
-
-    # Handle node_modules directory explicitly
-    if [ -d "node_modules" ]; then
-        sudo chown -R www-data:www-data node_modules
-        sudo chmod -R 755 node_modules
-    fi
-    
-    # Create and set permissions for Laravel log file
-    sudo touch storage/logs/laravel.log
-    sudo chmod 664 storage/logs/laravel.log
-    sudo chown www-data:www-data storage/logs/laravel.log
-
-    # Verify key directories are writable
-    if [ ! -w "storage/app/data/conversations" ] || \
-       [ ! -w "storage/app/data/assistants" ] || \
-       [ ! -w "storage/app/data" ] || \
-       [ ! -w "storage/framework" ] || \
-       [ ! -w "bootstrap/cache" ] || \
-       [ ! -w "storage" ]; then
-        echo -e "${RED}Error: Required directories are not writable${NC}"
+detect_user_context() {
+    if [ "$EUID" -eq 0 ]; then
+        if [ -n "$SUDO_USER" ]; then
+            # Running with sudo
+            ACTUAL_USER="$SUDO_USER"
+            IS_SUDO=true
+        else
+            # True root user
+            ACTUAL_USER="root"
+            IS_SUDO=false
+        fi
+    else
+        # Not root or sudo (shouldn't happen due to earlier check)
+        echo -e "${RED}This script must be run as root or with sudo${NC}"
         exit 1
     fi
-
-    echo -e "${GREEN}Directory structure and permissions set up successfully${NC}"
 }
-# Function to handle Apache
+
+setup_directories() {
+    echo -e "${YELLOW}Setting up directory structure and permissions...${NC}"
+
+    # Create web root if it doesn't exist
+    mkdir -p "$WEB_ROOT"
+
+    # Copy all regular files and directories
+    cp -R . "$WEB_ROOT/"
+
+    cd "$WEB_ROOT"
+
+    # Remove any existing .git directory
+    rm -rf .git
+
+    # Create build directories with proper permissions first
+    mkdir -p node_modules
+    mkdir -p public/build
+
+    # Set initial ownership for npm operations
+    if [ "$IS_SUDO" = true ]; then
+        # Set ownership of entire directory to actual user initially
+        chown -R "$ACTUAL_USER":"$ACTUAL_USER" .
+        # Ensure node_modules and public/build are owned by actual user
+        chown -R "$ACTUAL_USER":"$ACTUAL_USER" node_modules public/build
+    fi
+
+    # Create all required storage directories
+    mkdir -p storage/app/public
+    mkdir -p storage/app/data/conversations
+    mkdir -p storage/app/data/assistants
+    mkdir -p storage/framework/cache
+    mkdir -p storage/framework/sessions
+    mkdir -p storage/framework/views
+    mkdir -p storage/logs
+    mkdir -p storage/json
+
+    # Set storage permissions
+    chmod -R 775 storage
+    chmod -R 775 bootstrap/cache
+    chown -R www-data:www-data storage
+    chown -R www-data:www-data bootstrap/cache
+
+    # Set specific Laravel directories permissions
+    find storage -type d -exec chmod 775 {} \;
+    find storage -type f -exec chmod 664 {} \;
+    find bootstrap/cache -type d -exec chmod 775 {} \;
+}
+
+handle_nginx(){
+
+    # Check if nginx is running and stop it
+    if systemctl is-active --quiet nginx; then
+        echo "Stopping nginx service..."
+        systemctl stop nginx
+    elif pgrep nginx >/dev/null; then
+        echo "Stopping nginx process..."
+        pkill nginx
+    fi
+
+}
+
 handle_apache() {
     echo -e "${YELLOW}Checking for Apache...${NC}"
-    
+
     # Check if Apache is installed
     if command_exists apache2; then
         echo -e "${YELLOW}Apache detected. Stopping and disabling Apache service...${NC}"
-        
+
         # Stop Apache if running
         sudo systemctl stop apache2
-        
+
         # Disable Apache from starting on boot
         sudo systemctl disable apache2
-        
+
         # Double check Apache is not running
         if pgrep apache2 > /dev/null; then
             echo -e "${RED}Warning: Apache still running. Attempting forceful stop...${NC}"
             sudo pkill apache2
             sleep 2
         fi
-        
+
         # Verify port 80 is free
         if lsof -Pi :80 -sTCP:LISTEN -t >/dev/null ; then
             echo -e "${RED}Error: Port 80 is still in use. Please check running services.${NC}"
             echo -e "${YELLOW}You can use 'sudo lsof -i :80' to see what's using the port.${NC}"
             exit 1
         fi
-        
+
         echo -e "${GREEN}Apache has been stopped and disabled${NC}"
     else
         echo -e "${GREEN}No Apache installation detected${NC}"
     fi
 }
 
-# Function to run commands as the actual user
 run_as_user() {
-    if [ "$ACTUAL_USER" = "root" ]; then
-        "$@"
-    else
+    if [ "$IS_SUDO" = true ]; then
         sudo -u "$ACTUAL_USER" "$@"
+    else
+        "$@"
     fi
 }
 
-# Function to compare versions
 version_compare() {
     if [[ $1 == $2 ]]; then
         echo 0
@@ -187,12 +159,10 @@ version_compare() {
     echo 0
 }
 
-# Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check Node.js and npm versions
 check_node_npm() {
     local needs_install=false
     local current_node_version=""
@@ -240,12 +210,10 @@ check_node_npm() {
     fi
 }
 
-# Function to get Ubuntu version
 get_ubuntu_version() {
     lsb_release -rs
 }
 
-# Function to check and install system dependencies
 check_system_dependencies() {
     echo -e "${YELLOW}Checking system dependencies...${NC}"
     UBUNTU_VERSION=$(get_ubuntu_version)
@@ -307,7 +275,6 @@ check_system_dependencies() {
     check_node_npm
 }
 
-# Function to install and start Ollama
 setup_ollama() {
     echo -e "${YELLOW}Setting up Ollama...${NC}"
 
@@ -351,7 +318,6 @@ setup_ollama() {
     echo -e "${GREEN}Ollama setup completed successfully!${NC}"
 }
 
-# Function to pull Ollama models
 pull_models() {
     echo -e "${YELLOW}Checking and pulling required models...${NC}"
     declare -a models=("llama3.2:3b" "qwen2.5:3b" "gemma2:2b")
@@ -391,7 +357,6 @@ get_php_version() {
     echo "$PHP_VERSION"
 }
 
-# Modified setup_nginx function
 setup_nginx() {
 
     echo -e "${YELLOW}Setting up Nginx...${NC}"
@@ -401,10 +366,10 @@ setup_nginx() {
     apt-get update
     apt-get install -y nginx
     fi
-    
+
     # Get PHP version
     PHP_VERSION=$(get_php_version)
-    
+
     # Create nginx configuration
 cat > /etc/nginx/sites-available/llaravellama << EOF
 server {
@@ -447,89 +412,78 @@ EOF
 
     # Enable the site
     sudo ln -sf /etc/nginx/sites-available/llaravellama /etc/nginx/sites-enabled/
-    
+
     # Remove default site
     sudo rm -f /etc/nginx/sites-enabled/default
-    
+
     # Test nginx configuration
     sudo nginx -t
-    
+
     # Restart Nginx
     sudo systemctl restart nginx
-    
+
     echo -e "${GREEN}Nginx setup completed successfully!${NC}"
 }
 
-# Modified setup_laravel function
 setup_laravel() {
     echo -e "${YELLOW}Setting up Laravel application...${NC}"
-    
+
     cd "$WEB_ROOT"
-    
+
+    # Keep npm-related directories owned by actual user
+    if [ "$IS_SUDO" = true ]; then
+        chown -R "$ACTUAL_USER":"$ACTUAL_USER" node_modules public/build package.json package-lock.json
+    fi
+
     # Clear cache
     php artisan optimize:clear
-    
-    # Install dependencies
-    run_as_user composer install --no-interaction --prefer-dist
-    run_as_user npm install
 
-    if [ -d "vendor" ]; then
-        sudo chown -R www-data:www-data vendor
-        sudo chmod -R 755 vendor
+    # Install dependencies with appropriate user context
+    if [ "$IS_SUDO" = true ]; then
+        run_as_user composer install --no-interaction --prefer-dist
+        run_as_user npm install
+    else
+        composer install --no-interaction --prefer-dist
+        npm install
     fi
-    
-    if [ -d "node_modules" ]; then
-        sudo chown -R www-data:www-data node_modules
-        sudo chmod -R 755 node_modules
-    fi
-    
+
     # Setup environment
     if [ ! -f .env ]; then
         echo -e "${YELLOW}Creating .env file...${NC}"
-        run_as_user cp .env.example .env
+        if [ "$IS_SUDO" = true ]; then
+            run_as_user cp .env.example .env
+        else
+            cp .env.example .env
+        fi
     fi
 
        # Generate application key
     echo -e "${YELLOW}Generating application key...${NC}"
     php artisan key:generate --force
 
-    
+
     # Build assets
-    run_as_user npm run prod
-    
+    if [ "$IS_SUDO" = true ]; then
+        run_as_user npm run prod
+    else
+        npm run prod
+    fi
+
+    # Reset ownership to www-data after all operations
+    chown -R www-data:www-data .
+    chmod -R 755 vendor
+    chmod -R 755 node_modules
+
+    # Set proper permissions for storage and cache
+    chmod -R 775 storage
+    chmod -R 775 bootstrap/cache
+    chown -R www-data:www-data storage
+    chown -R www-data:www-data bootstrap/cache
+
     # Set cache
     php artisan optimize
-    
-    # Fix permissions again after Laravel setup
-    sudo chown -R www-data:www-data storage bootstrap/cache
-    sudo chmod -R 775 storage bootstrap/cache
 }
 
-# Add these function calls in your main execution block
-main() {
-    if [ "$1" == "--serve" ]; then
-       if [ ! -d "$WEB_ROOT" ]; then
-        echo -e "${RED}Application directory not found at $WEB_ROOT${NC}"
-        echo -e "${YELLOW}Please run the setup first without --serve flag${NC}"
-        exit 1
-    fi
-        handle_apache
-        setup_nginx
-        start_server
-    else
-        check_system_dependencies
-        handle_apache
-        setup_directories
-        setup_ollama
-        pull_models
-        setup_laravel
-        setup_nginx
-        setup_sample_data
-        start_server
-    fi
-}
-
-# Function to start the server
 start_server() {
     echo -e "${YELLOW}Starting servers...${NC}"
 
@@ -585,6 +539,33 @@ start_server() {
     echo -e "1. Edit the Nginx configuration at /etc/nginx/sites-available/llaravellama"
     echo -e "2. Add SSL certificates and update server_name directive"
     echo -e "3. Restart Nginx with: sudo systemctl restart nginx"
+}
+
+main() {
+    if [ "$1" == "--serve" ]; then
+       if [ ! -d "$WEB_ROOT" ]; then
+        echo -e "${RED}Application directory not found at $WEB_ROOT${NC}"
+        echo -e "${YELLOW}Please run the setup first without --serve flag${NC}"
+        exit 1
+    fi
+        detect_user_context
+        handle_nginx
+        handle_apache
+        setup_nginx
+        start_server
+    else
+        detect_user_context
+        check_system_dependencies
+        handle_nginx
+        handle_apache
+        setup_directories
+        setup_ollama
+        pull_models
+        setup_laravel
+        setup_nginx
+        setup_sample_data
+        start_server
+    fi
 }
 
 
