@@ -635,7 +635,34 @@ function appendMessage(content, isUser) {
         );
 
     if (isUser) {
-        messageDiv.text(content);
+        if (content.includes('```')) {
+            const formattedContent = parseAndFormatContent(content);
+            messageDiv.html(formattedContent);
+
+            // Add copy buttons to code blocks
+            messageDiv.find('pre').each(function() {
+                const preElement = $(this);
+                const codeContent = preElement.find('code').text();
+
+                const codeCopyBtn = $('<button>')
+                    .addClass('code-copy-button')
+                    .html('<i class="fa-regular fa-clipboard"></i>')
+                    .attr('title', 'Copy code')
+                    .on('click', function(e) {
+                        e.stopPropagation();
+                        copyToClipboard(codeContent, this);
+                    });
+
+                preElement.append(codeCopyBtn);
+            });
+
+            // Initialize syntax highlighting for user messages with code
+            messageDiv.find('pre code').each((i, el) => {
+                hljs.highlightElement(el);
+            });
+        } else {
+            messageDiv.text(content);
+        }
     } else {
         const formattedContent = parseAndFormatContent(content);
         messageDiv.html(formattedContent);
