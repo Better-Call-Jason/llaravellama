@@ -2,6 +2,28 @@
 
 Welcome to LlaraveLlama - where Laravel and Ollama come together like peanut butter and chocolate to create the most versatile private chat suite available. Built for privacy enthusiasts and AI aficionados alike, LlaraveLlama brings enterprise-level features to your local machine.
 
+## Table of Contents
+- [Preview](#-preview)
+- [Why LlaraveLlama?](#-why-llaravellama)
+- [Key Features](#-key-features)
+- [Installation Options](#-installation-options)
+  - [Recommended: Docker Installation](#recommended-docker-installation-)
+  - [Manual Installation](#manual-installation)
+    - [System Requirements](#-system-requirements)
+    - [Installation Steps](#installation-steps)
+    - [Future Starts](#future-starts)
+- [Accessing the Application](#-accessing-the-application)
+- [Mobile Access Setup](#-mobile-access-setup)
+- [Debugging Features](#-debugging-features)
+  - [Enabling Debug Mode](#enabling-debug-mode)
+  - [Mobile Debugging](#mobile-debugging)
+  - [Production Environments](#production-environments)
+- [About the Author](#-about-the-author)
+- [The Vision](#-the-vision)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Related Projects](#-related-projects)
+
 ## 📸 Preview
 
 <div align="center">
